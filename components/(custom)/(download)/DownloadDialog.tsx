@@ -35,10 +35,9 @@ export type WorkflowDownloadDialogProps = {
 export function WorkflowDownloadDialog({
   workflow,
   title = "n8n Workflow",
-  className,
 }: WorkflowDownloadDialogProps) {
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState("preview");
+
 
   // Format the workflow JSON for display
   const getFormattedWorkflow = () => {
@@ -165,7 +164,7 @@ export function WorkflowDownloadDialog({
             <Tabs
               defaultValue="preview"
               className="w-full"
-              onValueChange={setActiveTab}
+      
             >
               <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="preview">Workflow Preview</TabsTrigger>
@@ -229,14 +228,14 @@ export function WorkflowDownloadDialog({
                   <div className="mb-4">
                     <p className="text-sm font-medium mb-2">Tags:</p>
                     <div className="flex flex-wrap gap-1">
-                      {workflowInfo.tags.map((tag, index) => (
+                        {workflowInfo.tags.map((tag: string, index: number) => (
                         <Badge
                           key={index}
                           className="bg-primary/20 text-primary hover:bg-primary/30"
                         >
                           {tag}
                         </Badge>
-                      ))}
+                        ))}
                     </div>
                   </div>
                 )}

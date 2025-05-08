@@ -87,8 +87,7 @@ Respond with only the category name from the list, nothing else.`,
       ?.trim()
       .toLowerCase();
 
-    // Add logging for debugging
-    console.log("API Response - Category detected:", category);
+
 
     // Validate that the category is in our list
     if (category && categories.includes(category)) {

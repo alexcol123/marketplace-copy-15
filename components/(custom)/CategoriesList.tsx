@@ -12,7 +12,7 @@ const CategoriesList = ({ category, search }: CategoriesListProps) => {
   // Create search term query parameter once, only when search changes
   const searchTerm = search ? `&search=${search}` : "";
 
-  console.log("category", category);
+
   const categoryPresent = category !== undefined ? true : false;
 
   return (

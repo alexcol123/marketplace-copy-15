@@ -22,7 +22,7 @@ export default async function DashboardLayout({
   const user = await currentUser();
   const hasProfile = user?.privateMetadata.hasProfile;
 
-  console.log("hasProfile", hasProfile);
+
 
   if (!hasProfile) {
   return <CreateProfileComponent/>;

@@ -26,7 +26,7 @@ const MyWorkflowsPage = async () => {
           btnLink={"/dashboard/wf/create"}
         />
       ) : (
-        <CardsList workflows={workflows} />
+        <CardsList workflows={workflows}  canDelete={true}/>
       )}
     </div>
   );

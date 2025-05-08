@@ -53,7 +53,7 @@ const CreateWorkflow = () => {
       // Optional: Additional actions after successful validation
       if (validationResult.isValid) {
         // Can add any additional actions here after successful validation
-        console.log("Validated workflow JSON:", validationResult.parsedJson);
+
       }
     } catch (error) {
       console.error("Error during validation:", error);

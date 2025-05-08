@@ -26,10 +26,11 @@ const getAuthUser = async () => {
   return user;
 };
 
-const renderError = (error: unknown): { message: string } => {
+const renderError = (error: unknown): { message: string; success: boolean } => {
   console.log(error);
   return {
     message: error instanceof Error ? error.message : "An error occurred",
+    success: false,
   };
 };
 
@@ -116,7 +117,6 @@ export const updateProfileImageAction = async (
     const image = formData.get("image") as File;
     const validatedFields = validateWithZodSchema(imageSchema, { image });
 
-    console.log(validateWithZodSchema);
     const fullPath = await uploadImage(validatedFields.image);
 
     await db.profile.update({
@@ -218,7 +218,7 @@ export const createWorkflowAction = async (
     };
   }
 
-  redirect("/");
+  redirect("/dashboard/wf");
 };
 
 export const fetchWorkflows = async ({
@@ -245,15 +245,12 @@ export const fetchWorkflows = async ({
       author: true,
       category: true,
       slug: true,
-      viewCount:true
+      viewCount: true,
     },
     orderBy: {
       createdAt: "desc",
     },
   });
-console.log(workflows[0])
-
-console.log('workflow 0-------------------------------------------------------')
 
   return workflows;
 };
@@ -375,14 +372,13 @@ export async function getUserWorkflowStats() {
   }
 }
 
-
-// Downloads 
+// Downloads
 
 // utils/actions.ts
 export const recordWorkflowDownload = async (workflowId: string) => {
   try {
     const user = await getAuthUser();
-    
+
     // Create the download record
     await db.workflowDownload.create({
       data: {
@@ -390,19 +386,18 @@ export const recordWorkflowDownload = async (workflowId: string) => {
         userId: user.id,
       },
     });
-    
+
     return { message: "Download recorded successfully" };
   } catch (error) {
     return renderError(error);
   }
 };
 
-
 // utils/actions.ts
 export const fetchUserDownloads = async () => {
   try {
     const user = await getAuthUser();
-    
+
     const downloads = await db.workflowDownload.findMany({
       where: {
         userId: user.id,
@@ -411,15 +406,78 @@ export const fetchUserDownloads = async () => {
         workflow: {
           include: {
             author: true,
-          }
+          },
         },
       },
       orderBy: {
-        downloadedAt: 'desc',
+        downloadedAt: "desc",
       },
     });
-    
+
     return downloads;
+  } catch (error) {
+    return renderError(error);
+  }
+};
+
+export const deleteWorkflowAction = async (
+  prevState: Record<string, unknown>,
+  formData: FormData | { workflowId: string }
+): Promise<{ message: string; success: boolean }> => {
+  try {
+    // Get the authenticated user
+    const user = await getAuthUser();
+
+    // Get workflow ID from either FormData or direct object
+    const workflowId =
+      formData instanceof FormData
+        ? (formData.get("workflowId") as string)
+        : formData.workflowId;
+
+    if (!workflowId) {
+      throw new Error("Workflow ID is required");
+    }
+
+    // Get the workflow to check ownership and retrieve image URL
+    const workflow = await db.workflow.findUnique({
+      where: { id: workflowId },
+      select: {
+        id: true,
+        authorId: true,
+        workflowImage: true,
+        title: true,
+        slug: true,
+      },
+    });
+
+    // Check if workflow exists
+    if (!workflow) {
+      return { message: "No workflow found with that id ", success: false };
+    }
+
+    // Verify ownership - check if the authenticated user created this workflow
+    if (workflow.authorId !== user.id) {
+      return {
+        message: "You do not have permission to delete this workflow",
+        success: false,
+      };
+    }
+
+    // Second step: Delete the workflow from the database
+    // This will cascade delete related records based on your schema relationships
+    await db.workflow.delete({
+      where: { id: workflowId },
+    });
+
+    // Revalidate relevant paths to update the UI
+    revalidatePath("/dashboard/wf"); // My Workflows page
+    revalidatePath("/"); // Home page that might show the workflows
+
+    // Return success message
+    return {
+      message: `"${workflow.title}" was successfully deleted`,
+      success: true,
+    };
   } catch (error) {
     return renderError(error);
   }

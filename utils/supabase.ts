@@ -17,3 +17,5 @@ export const uploadImage = async (image: File) => {
   const imageUrl =supabase.storage.from(bucket).getPublicUrl(newName).data.publicUrl;
   return imageUrl
 };
+
+

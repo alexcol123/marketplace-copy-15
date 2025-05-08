@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     // Create a description of the workflow based on the JSON
     const nodeTypes = (workflowJson.nodes || [])
-      .map((node: any) => node.type || "")
+      .map((node: { type?: string }) => node.type || "")
       .filter(Boolean);
     const uniqueNodeTypes = [...new Set(nodeTypes)];
 
@@ -88,7 +88,7 @@ Respond with only the category name from the list, nothing else.`,
       .toLowerCase();
 
     // Add logging for debugging
-    console.log("API Response - Category detected:", category);
+ 
 
     // Validate that the category is in our list
     if (category && categories.includes(category)) {
@@ -98,7 +98,7 @@ Respond with only the category name from the list, nothing else.`,
       });
     } else {
       // Default to "other" if no valid category was determined
-      console.log('Invalid category detected, defaulting to "other"');
+
       return NextResponse.json({
         success: true,
         category: "other",

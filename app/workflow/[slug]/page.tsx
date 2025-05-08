@@ -32,6 +32,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import WorkflowJsonDisplay from "@/components/(custom)/(download)/WorkFlowJsonDisplay";
 import { WorkflowJsonDownloadButton } from "@/components/(custom)/(download)/WorkflowJsonDownloadButton";
+import ShareButton from "@/components/(custom)/(landing)/ShareButton";
 
 const SingleWorkflowPage = async ({
   params,
@@ -92,19 +93,22 @@ const SingleWorkflowPage = async ({
 
   // Improved reading time calculation
   const wordsPerMinute = 200;
-  
+
   // Count words in main content
   const wordsContentLength = workflow?.content?.split(/\s+/).length || 0;
-  
+
   // Count words in steps, properly handling each step
-  const wordStepsLength = workflow?.steps ? 
-    workflow.steps.reduce((total, step) => {
-      return total + (typeof step === 'string' ? step.split(/\s+/).length : 0);
-    }, 0) : 0;
-  
+  const wordStepsLength = workflow?.steps
+    ? workflow.steps.reduce((total, step) => {
+        return (
+          total + (typeof step === "string" ? step.split(/\s+/).length : 0)
+        );
+      }, 0)
+    : 0;
+
   // Add both counts together
   const wordsTotal = wordsContentLength + wordStepsLength;
-  
+
   // Calculate reading time, minimum 1 minute
   const readingTime = Math.max(1, Math.ceil(wordsTotal / wordsPerMinute));
 
@@ -167,22 +171,13 @@ const SingleWorkflowPage = async ({
           </div>
 
           <div className="flex space-x-2 mt-3 sm:mt-0">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 px-4 gap-1.5 border-primary/20 hover:bg-primary/5 hover:border-primary/40 transition-colors"
-            >
-              <Heart className="h-4 w-4 text-primary" aria-hidden="true" />
-              <span>Save for Later</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 px-4 gap-1.5 border-primary/20 hover:bg-primary/5 hover:border-primary/40 transition-colors"
-            >
-              <Share2 className="h-4 w-4 text-primary" aria-hidden="true" />
-              <span>Share Workflow</span>
-            </Button>
+          <ShareButton 
+  propertyId={workflow.slug} 
+  name={workflow.title} 
+  description={workflow.content} 
+  imageUrl={workflow.workflowImage}
+  variant='default'
+/>
           </div>
         </div>
       </div>
@@ -264,7 +259,7 @@ const SingleWorkflowPage = async ({
           <div className="mt-auto p-6 pt-0">
             <WorkflowJsonDownloadButton
               workflowContent={workflow.workFlowJson}
-              workflowId={workflow.id} 
+              workflowId={workflow.id}
               title={workflow.title}
             />
           </div>

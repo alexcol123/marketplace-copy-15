@@ -124,8 +124,6 @@ Respond with only the category name from the list, nothing else.`,
       ?.trim()
       .toLowerCase();
 
-    // Add logging for debugging
-    console.log("Generate-All - Category detected:", category);
 
     // Validate that the category is in our list
     if (category && categories.includes(category)) {
@@ -328,7 +326,7 @@ async function generateAllContent(workflowInfo: any) {
     });
 
     const responseText = completion.choices[0].message.content || "";
-    console.log("Raw response:", responseText);
+
 
     // Parse the response to extract title, description, and steps
     let title = "";
