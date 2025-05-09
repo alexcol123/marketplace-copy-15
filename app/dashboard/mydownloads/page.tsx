@@ -23,6 +23,7 @@ export default function MyDownloadsPage() {
       setIsLoading(true);
       try {
         const result = await fetchUserDownloads();
+      
         setDownloads(result);
       } catch (error) {
         console.error("Error fetching downloads:", error);
