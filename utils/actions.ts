@@ -42,7 +42,7 @@ export async function checkUsernameAvailability(username: string): Promise<{
   if (!username || username.length < 3) {
     return {
       available: false,
-      message: "Username must be at least 3 characters"
+      message: "Username must be at least 3 characters",
     };
   }
 
@@ -50,29 +50,29 @@ export async function checkUsernameAvailability(username: string): Promise<{
   if (!/^[a-zA-Z0-9_]+$/.test(username)) {
     return {
       available: false,
-      message: "Username can only contain letters, numbers, and underscores"
+      message: "Username can only contain letters, numbers, and underscores",
     };
   }
 
   try {
     // Get current user to exclude their existing username
     const user = await currentUser();
-    
+
     // Check if username exists in database
     const existingUser = await db.profile.findUnique({
       where: {
-        username: username
+        username: username,
       },
       select: {
-        clerkId: true
-      }
+        clerkId: true,
+      },
     });
 
     // If username exists but belongs to the current user, it's still "available"
     if (existingUser && user && existingUser.clerkId === user.id) {
       return {
         available: true,
-        message: "This is your current username"
+        message: "This is your current username",
       };
     }
 
@@ -80,20 +80,20 @@ export async function checkUsernameAvailability(username: string): Promise<{
     if (existingUser) {
       return {
         available: false,
-        message: "This username is already taken"
+        message: "This username is already taken",
       };
     }
 
     // Username is available
     return {
       available: true,
-      message: "Username is available!"
+      message: "Username is available!",
     };
   } catch (error) {
     console.error("Error checking username availability:", error);
     return {
       available: false,
-      message: "Error checking username availability"
+      message: "Error checking username availability",
     };
   }
 }
@@ -113,11 +113,13 @@ export const CreateProfileAction = async (
     const validatedFields = validateWithZodSchema(profileSchema, rawData);
 
     // Check if username is already taken
-    const usernameCheck = await checkUsernameAvailability(validatedFields.username);
+    const usernameCheck = await checkUsernameAvailability(
+      validatedFields.username
+    );
     if (!usernameCheck.available) {
-      return { 
+      return {
         message: usernameCheck.message,
-        success: false
+        success: false,
       };
     }
 
@@ -170,16 +172,21 @@ export const updateProfileAction = async (
     // Check if the username has changed
     const currentProfile = await db.profile.findUnique({
       where: { clerkId: user.id },
-      select: { username: true }
+      select: { username: true },
     });
 
-    if (currentProfile && validatedFields.username !== currentProfile.username) {
+    if (
+      currentProfile &&
+      validatedFields.username !== currentProfile.username
+    ) {
       // Username has changed, check availability
-      const usernameCheck = await checkUsernameAvailability(validatedFields.username);
+      const usernameCheck = await checkUsernameAvailability(
+        validatedFields.username
+      );
       if (!usernameCheck.available) {
-        return { 
+        return {
           message: usernameCheck.message,
-          success: false
+          success: false,
         };
       }
     }
@@ -224,19 +231,6 @@ export const updateProfileImageAction = async (
   }
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 export const createWorkflowAction = async (
   prevState: Record<string, unknown>,
   formData: FormData
@@ -247,6 +241,8 @@ export const createWorkflowAction = async (
     // Get form data
     const rawData = Object.fromEntries(formData);
     const file = formData.get("image") as File;
+
+    console.log(file);
 
     if (!file || file.size === 0) {
       return { message: "Image file is required" };
@@ -744,13 +740,10 @@ export const getLeaderboardData = async (): Promise<LeaderboardData> => {
   }
 };
 
-export const getUserProfileWithWorkflows = async (
-  username: string
-) => {
-
-    console.log('start=====================')
-    console.log(username)
-    console.log('end=============================================')
+export const getUserProfileWithWorkflows = async (username: string) => {
+  console.log("start=====================");
+  console.log(username);
+  console.log("end=============================================");
   try {
     // Find the user profile by username
     const profile = await db.profile.findFirst({
