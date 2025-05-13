@@ -163,7 +163,7 @@ function ShareButton({
                 <div className="flex flex-col items-center gap-1">
                   <FacebookShareButton
                     url={shareLink}
-                    quote={name}
+            
                     className="focus:outline-none"
                   >
                     <div className="p-2 rounded-full bg-[#1877F2]/20 hover:bg-[#1877F2]/30 transition-colors">

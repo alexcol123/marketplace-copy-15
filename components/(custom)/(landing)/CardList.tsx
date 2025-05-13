@@ -6,7 +6,7 @@ const CardsList = ({
   canDelete = false,
 }: {
   workflows: WorkflowCardTypes[];
-  canDelete: boolean;
+  canDelete?: boolean;
 }) => {
   return (
     <section className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">

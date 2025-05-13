@@ -27,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export type WorkflowDownloadDialogProps = {
-  workflow: any; // Your workflow JSON or object
+  workflow: unknown; // Your workflow JSON or object
   title?: string;
   className?: string;
 };
@@ -118,8 +118,13 @@ export function WorkflowDownloadDialog({
 
   // Group nodes by type
   const getNodeTypes = () => {
-    const nodeTypes = {};
-    workflowInfo.nodes.forEach((node) => {
+    interface Node {
+      type?: string;
+    }
+
+    const nodeTypes: Record<string, number> = {};
+
+    workflowInfo.nodes.forEach((node: Node) => {
       const type = node.type || "Unknown";
       nodeTypes[type] = (nodeTypes[type] || 0) + 1;
     });

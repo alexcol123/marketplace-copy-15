@@ -1,13 +1,9 @@
-// api/workflow-analysis/generate-all/route.ts
-import { NextRequest, NextResponse } from "next/server";
+// api/workflow-analysis/generate-all/route.js
+import { handleApiError } from "@/utils/functions/handleAPIError";
+import {  NextResponse } from "next/server";
 import OpenAI from "openai";
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-export async function POST(request: NextRequest) {
+export async function POST(request) {
   try {
     // Parse the incoming JSON request
     const { workflowJson } = await request.json();
@@ -38,20 +34,16 @@ export async function POST(request: NextRequest) {
       category: categoryData.category,
       success: true,
     });
-  } catch (error: any) {
-    console.error("Error generating workflow content:", error);
-    return NextResponse.json(
-      { error: "Failed to generate workflow content", details: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error, "Failed to generate workflow content");
   }
 }
 
 // Helper function to get category
 async function getCategoryForWorkflow(
-  workflowJson: any,
-  title: string,
-  description: string
+  workflowJson,
+  title,
+  description
 ) {
   try {
     // Use the same logic as the category endpoint
@@ -74,7 +66,7 @@ async function getCategoryForWorkflow(
 
     // Create a description of the workflow based on the JSON
     const nodeTypes = (workflowJson.nodes || [])
-      .map((node: any) => node.type || "")
+      .map((node) => node.type || "")
       .filter(Boolean);
     const uniqueNodeTypes = [...new Set(nodeTypes)];
 
@@ -124,8 +116,6 @@ Respond with only the category name from the list, nothing else.`,
       ?.trim()
       .toLowerCase();
 
-    // Add logging for debugging
-
     // Validate that the category is in our list
     if (category && categories.includes(category)) {
       return { category };
@@ -133,28 +123,23 @@ Respond with only the category name from the list, nothing else.`,
       return { category: "other" };
     }
   } catch (error) {
-    console.error("Error getting category in generateAll:", error);
-    return { category: "other" };
+     return handleApiError(error, "Error getting category in generateAll");
   }
 }
 
 // Function to extract relevant information from the workflow
-function extractWorkflowInfo(workflow: any) {
+function extractWorkflowInfo(workflow) {
   // Initialize variables to store extracted information
-  const nodeTypes = new Set<string>();
-  const nodeNames: string[] = [];
-  const triggerNodes: { name: string; type: string }[] = [];
-  const actionNodes: { name: string; type: string }[] = [];
-  const nodes: {
-    name: string;
-    type: string;
-    position?: { x: number; y: number };
-  }[] = [];
-  const connections: any[] = [];
+  const nodeTypes = new Set();
+  const nodeNames = [];
+  const triggerNodes = [];
+  const actionNodes = [];
+  const nodes = [];
+  const connections = [];
 
   // Extract node information
   if (workflow.nodes && Array.isArray(workflow.nodes)) {
-    workflow.nodes.forEach((node: any) => {
+    workflow.nodes.forEach((node) => {
       // Store node type
       if (node.type) {
         nodeTypes.add(node.type);
@@ -196,10 +181,10 @@ function extractWorkflowInfo(workflow: any) {
   // Extract connection information
   if (workflow.connections && workflow.connections.main) {
     Object.entries(workflow.connections.main).forEach(
-      ([sourceNodeId, sourceConnections]: [string, any]) => {
+      ([sourceNodeId, sourceConnections]) => {
         if (sourceConnections) {
           Object.entries(sourceConnections).forEach(
-            ([outputIndex, outputs]: [string, any]) => {
+            ([outputIndex, outputs]) => {
               if (Array.isArray(outputs)) {
                 outputs.forEach((output) => {
                   connections.push({
@@ -252,7 +237,7 @@ function extractWorkflowInfo(workflow: any) {
   };
 }
 
-async function generateAllContent(workflowInfo: any) {
+async function generateAllContent(workflowInfo) {
   try {
     // Create a prompt for OpenAI
     const prompt = `
@@ -274,20 +259,20 @@ async function generateAllContent(workflowInfo: any) {
       
       Trigger nodes: ${
         workflowInfo.triggerNodes
-          ?.map((t: { name: string; type: string }) => `${t.name} (${t.type})`)
+          ?.map((t) => `${t.name} (${t.type})`)
           .join(", ") || "None identified"
       }
       
       Action nodes: ${
         workflowInfo.actionNodes
-          ?.map((a: { name: string; type: string }) => `${a.name} (${a.type})`)
+          ?.map((a) => `${a.name} (${a.type})`)
           .join(", ") || ""
       }
       
       Nodes in approximate execution order:
       ${workflowInfo.sortedNodes
         .map(
-          (node: any, index: number) =>
+          (node, index) =>
             `${index + 1}. ${node.name} (${node.type})`
         )
         .join("\n")}
@@ -328,11 +313,10 @@ async function generateAllContent(workflowInfo: any) {
 
     const responseText = completion.choices[0].message.content || "";
 
-
     // Parse the response to extract title, description, and steps
     let title = "";
     let description = "";
-    let steps: string[] = [];
+    let steps = [];
 
     // Extract title (likely at the beginning, before any "Description:" tag)
     const titleMatch = responseText.match(/(?:Title:?\s*)(.*?)(?:\n|$)/i);

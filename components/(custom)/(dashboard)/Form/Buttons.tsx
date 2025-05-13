@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Plus } from "lucide-react";
+import { ArrowLeft, Loader2, Plus } from "lucide-react";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { SignInButton } from "@clerk/nextjs";
@@ -121,3 +121,18 @@ export const IconButton = ({ actionType }: { actionType: actionType }) => {
     </Button>
   );
 };
+
+
+export const ReturnToWorkflowsBtn=()=>{
+  return       <div className="mb-6">
+        <Link href="/">
+          <Button
+            variant="outline"
+            className="pl-2 hover:bg-primary/5 hover:text-primary transition-colors group"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+            Return to Workflow Library
+          </Button>
+        </Link>
+      </div>
+}

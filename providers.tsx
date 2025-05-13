@@ -8,7 +8,7 @@ function Providers({ children }: { children: React.ReactNode }) {
       <Toaster richColors position="top-center" />
       <ThemeProvider
         attribute="class"
-        defaultTheme="system"
+        defaultTheme="dark"
         enableSystem
         disableTransitionOnChange
       >

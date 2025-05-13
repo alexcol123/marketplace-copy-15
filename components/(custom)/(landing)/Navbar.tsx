@@ -14,6 +14,7 @@ import {
   Home,
   PlusCircle,
   ChevronUp,
+  Trophy, // Added Trophy icon for leaderboard
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -82,6 +83,14 @@ const Navbar = () => {
             <div className="relative lg:hidden">
               <NavSearch />
             </div>
+            
+            {/* Leaderboard link - Added for desktop */}
+            <Button variant="ghost" asChild className="flex items-center gap-2 text-primary">
+              <Link href="/leaderboard">
+                <Trophy className="h-4 w-4" />
+                <span>Leaderboard</span>
+              </Link>
+            </Button>
             
             <ModeToggle />
 
@@ -157,6 +166,18 @@ const Navbar = () => {
           <div className="mb-3">
             <NavSearch />
           </div>
+
+          {/* Leaderboard link - Added for mobile */}
+          <Link
+            href="/leaderboard"
+            className="flex items-center justify-between p-2.5 rounded-md bg-primary/5 hover:bg-primary/10 text-sm transition-colors border border-primary/10"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <div className="flex items-center gap-2">
+              <Trophy className="h-4 w-4 text-primary" />
+              <span>Leaderboard</span>
+            </div>
+          </Link>
 
           <SignedOut>
             <div className="grid grid-cols-2 gap-2">

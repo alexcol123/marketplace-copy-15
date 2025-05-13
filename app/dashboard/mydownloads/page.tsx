@@ -11,9 +11,44 @@ import { Download, ExternalLink, Search, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { WorkflowJsonDownloadButton } from "@/components/(custom)/(download)/WorkflowJsonDownloadButton";
+import { JsonObject, JsonValue } from "@prisma/client/runtime/library";
+
+interface WorkflowDownload {
+  id: string;
+  workflowId: string;
+  userId: string;
+  downloadedAt: string | Date;
+  workflow: {
+    id: string;
+    title: string;
+    content: string;
+    workflowImage: string;
+    slug: string;
+    authorId: string;
+    category: string;
+    viewCount: number;
+    workFlowJson: string | JsonValue | JsonObject // You can define a more specific type if needed
+    author: {
+      id: string;
+      clerkId: string;
+      firstName: string;
+      lastName: string;
+      username: string;
+      email: string;
+      profileImage: string;
+      bio: string | null;
+      createdAt: Date | string;
+      updatedAt: Date | string;
+    };
+  };
+}
+
 
 export default function MyDownloadsPage() {
-  const [downloads, setDownloads] = useState([]);
+const [downloads, setDownloads] = useState<WorkflowDownload[]>([]);
+
+
+
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   
@@ -23,8 +58,12 @@ export default function MyDownloadsPage() {
       setIsLoading(true);
       try {
         const result = await fetchUserDownloads();
-      
-        setDownloads(result);
+
+        if (Array.isArray(result)) {
+          setDownloads(result as WorkflowDownload[]);
+        } else {
+          console.error("Unexpected response format:", result);
+        }
       } catch (error) {
         console.error("Error fetching downloads:", error);
       } finally {
@@ -45,7 +84,7 @@ export default function MyDownloadsPage() {
   });
   
   // Handle search input change
-  const handleSearchChange = (e) => {
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     setSearchTerm(e.target.value);
   };
   
@@ -77,7 +116,7 @@ export default function MyDownloadsPage() {
           </div>
           <h2 className="text-xl sm:text-2xl font-medium mb-2 sm:mb-3">No downloads yet</h2>
           <p className="text-sm text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto">
-            When you download workflows, they'll appear here for easy access.
+            When you download workflows, they&apos;ll appear here for easy access.
           </p>
           <Button asChild size="lg" className="px-6">
             <Link href="/">Discover Workflows</Link>

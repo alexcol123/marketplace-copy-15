@@ -15,7 +15,6 @@ function NavSearch() {
   const [search, setSearch] = useState(
     searchParams.get('search')?.toString() || ''
   );
-  const [isFocused, setIsFocused] = useState(false);
 
   const handleSearch = useDebouncedCallback((value: string) => {
     const params = new URLSearchParams(searchParams);
@@ -59,8 +58,6 @@ function NavSearch() {
           handleSearch(e.target.value);
         }}
         value={search}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
         aria-label="Search workflows"
       />
       

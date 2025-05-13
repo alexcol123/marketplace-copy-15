@@ -34,6 +34,70 @@ const renderError = (error: unknown): { message: string; success: boolean } => {
   };
 };
 
+export async function checkUsernameAvailability(username: string): Promise<{
+  available: boolean;
+  message: string;
+}> {
+  // Don't check if username is less than minimum length
+  if (!username || username.length < 3) {
+    return {
+      available: false,
+      message: "Username must be at least 3 characters"
+    };
+  }
+
+  // Validate username format
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+    return {
+      available: false,
+      message: "Username can only contain letters, numbers, and underscores"
+    };
+  }
+
+  try {
+    // Get current user to exclude their existing username
+    const user = await currentUser();
+    
+    // Check if username exists in database
+    const existingUser = await db.profile.findUnique({
+      where: {
+        username: username
+      },
+      select: {
+        clerkId: true
+      }
+    });
+
+    // If username exists but belongs to the current user, it's still "available"
+    if (existingUser && user && existingUser.clerkId === user.id) {
+      return {
+        available: true,
+        message: "This is your current username"
+      };
+    }
+
+    // If username exists and belongs to another user
+    if (existingUser) {
+      return {
+        available: false,
+        message: "This username is already taken"
+      };
+    }
+
+    // Username is available
+    return {
+      available: true,
+      message: "Username is available!"
+    };
+  } catch (error) {
+    console.error("Error checking username availability:", error);
+    return {
+      available: false,
+      message: "Error checking username availability"
+    };
+  }
+}
+
 export const CreateProfileAction = async (
   prevState: Record<string, unknown>,
   formData: FormData
@@ -47,6 +111,15 @@ export const CreateProfileAction = async (
 
     const rawData = Object.fromEntries(formData.entries());
     const validatedFields = validateWithZodSchema(profileSchema, rawData);
+
+    // Check if username is already taken
+    const usernameCheck = await checkUsernameAvailability(validatedFields.username);
+    if (!usernameCheck.available) {
+      return { 
+        message: usernameCheck.message,
+        success: false
+      };
+    }
 
     const userData = {
       clerkId: user.id,
@@ -86,13 +159,30 @@ export const fetchProfile = async () => {
 export const updateProfileAction = async (
   prevState: Record<string, unknown>,
   formData: FormData
-): Promise<{ message: string }> => {
+): Promise<{ message: string; success?: boolean }> => {
   const user = await getAuthUser();
 
   try {
     const rawData = Object.fromEntries(formData);
 
     const validatedFields = validateWithZodSchema(profileSchema, rawData);
+
+    // Check if the username has changed
+    const currentProfile = await db.profile.findUnique({
+      where: { clerkId: user.id },
+      select: { username: true }
+    });
+
+    if (currentProfile && validatedFields.username !== currentProfile.username) {
+      // Username has changed, check availability
+      const usernameCheck = await checkUsernameAvailability(validatedFields.username);
+      if (!usernameCheck.available) {
+        return { 
+          message: usernameCheck.message,
+          success: false
+        };
+      }
+    }
 
     await db.profile.update({
       where: {
@@ -102,7 +192,7 @@ export const updateProfileAction = async (
     });
 
     revalidatePath("/profile");
-    return { message: "Profile updated successfully" };
+    return { message: "Profile updated successfully", success: true };
   } catch (error) {
     return renderError(error);
   }
@@ -133,6 +223,19 @@ export const updateProfileImageAction = async (
     return renderError(error);
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 export const createWorkflowAction = async (
   prevState: Record<string, unknown>,
@@ -271,7 +374,7 @@ export const fetchSingleWorkflow1 = async (slug: string) => {
 export const fetchSingleWorkflow = async (slug: string) => {
   try {
     // Use the update operation. It increments viewCount AND returns the updated workflow.
-    const updatedWorkflow = await db.workflow.update({
+    const workflow = await db.workflow.update({
       where: {
         slug,
       },
@@ -285,7 +388,7 @@ export const fetchSingleWorkflow = async (slug: string) => {
       },
     });
 
-    return updatedWorkflow;
+    return workflow;
   } catch (error) {
     return renderError(error);
   }
@@ -480,5 +583,244 @@ export const deleteWorkflowAction = async (
     };
   } catch (error) {
     return renderError(error);
+  }
+};
+
+// Add this to utils/actions.ts
+
+// Leaderboard data types
+interface TopDownloadedWorkflow {
+  id: string;
+  title: string;
+  authorName: string;
+  authorProfileImage: string;
+  _count: {
+    downloads: number;
+  };
+}
+
+interface TopContributor {
+  id: string;
+  name: string;
+  username: string;
+  profileImage: string;
+  workflowCount: number;
+}
+
+interface TrendingWorkflow {
+  id: string;
+  title: string;
+  authorName: string;
+  authorProfileImage: string;
+  recentViews: number;
+}
+
+interface LeaderboardData {
+  topDownloadedWorkflows: TopDownloadedWorkflow[];
+  topWorkflowCreators: TopContributor[];
+  trendingThisMonth: TrendingWorkflow[];
+}
+
+// Function to fetch leaderboard data
+export const getLeaderboardData = async (): Promise<LeaderboardData> => {
+  try {
+    // Get top downloaded workflows
+    const topDownloadedWorkflows = await db.workflow.findMany({
+      take: 10,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        author: {
+          select: {
+            firstName: true,
+            lastName: true,
+            profileImage: true,
+          },
+        },
+        _count: {
+          select: {
+            downloads: true,
+          },
+        },
+      },
+      orderBy: {
+        downloads: {
+          _count: "desc",
+        },
+      },
+    });
+
+    // Get top workflow creators
+    const topWorkflowCreators = await db.profile.findMany({
+      take: 10,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        username: true,
+        profileImage: true,
+        _count: {
+          select: {
+            Workflow: true,
+          },
+        },
+      },
+      orderBy: {
+        Workflow: {
+          _count: "desc",
+        },
+      },
+    });
+
+    // Get trending workflows this month
+    // First get the date for the beginning of the current month
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Find workflows with the most views in the current month
+    const trendingThisMonth = await db.workflow.findMany({
+      take: 10,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        viewCount: true, // This is used as a proxy for monthly views
+        author: {
+          select: {
+            firstName: true,
+            lastName: true,
+            profileImage: true,
+          },
+        },
+      },
+      where: {
+        updatedAt: {
+          gte: startOfMonth,
+        },
+      },
+      orderBy: {
+        viewCount: "desc",
+      },
+    });
+
+    // Format the data for the component
+    return {
+      topDownloadedWorkflows: topDownloadedWorkflows.map((workflow) => ({
+        id: workflow.slug, // Using slug as ID for URL construction
+        title: workflow.title,
+        authorName: `${workflow.author.firstName} ${workflow.author.lastName}`,
+        authorProfileImage: workflow.author.profileImage,
+        _count: {
+          downloads: workflow._count.downloads,
+        },
+      })),
+
+      topWorkflowCreators: topWorkflowCreators.map((creator) => ({
+        id: creator.id,
+        name: `${creator.firstName} ${creator.lastName}`,
+        username: creator.username,
+        profileImage: creator.profileImage,
+        workflowCount: creator._count.Workflow,
+      })),
+
+      trendingThisMonth: trendingThisMonth.map((workflow) => ({
+        id: workflow.slug, // Using slug as ID for URL construction
+        title: workflow.title,
+        authorName: `${workflow.author.firstName} ${workflow.author.lastName}`,
+        authorProfileImage: workflow.author.profileImage,
+        recentViews: workflow.viewCount, // Using viewCount as proxy for monthly views
+      })),
+    };
+  } catch (error) {
+    console.error("Error fetching leaderboard data:", error);
+
+    // Return empty data in case of error
+    return {
+      topDownloadedWorkflows: [],
+      topWorkflowCreators: [],
+      trendingThisMonth: [],
+    };
+  }
+};
+
+export const getUserProfileWithWorkflows = async (
+  username: string
+) => {
+
+    console.log('start=====================')
+    console.log(username)
+    console.log('end=============================================')
+  try {
+    // Find the user profile by username
+    const profile = await db.profile.findFirst({
+      where: {
+        username: username,
+      },
+      select: {
+        id: true,
+        clerkId: true,
+        firstName: true,
+        lastName: true,
+        username: true,
+        email: true,
+        profileImage: true,
+        bio: true,
+        createdAt: true,
+        _count: {
+          select: {
+            Workflow: true,
+          },
+        },
+        Workflow: {
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            category: true,
+            workflowImage: true,
+            viewCount: true,
+            createdAt: true,
+            _count: {
+              select: {
+                downloads: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "desc", // Most recent first
+          },
+        },
+      },
+    });
+
+    // Return null if profile doesn't exist
+    if (!profile) {
+      return null;
+    }
+
+    // Calculate total downloads across all workflows
+    const totalDownloads = profile.Workflow.reduce(
+      (sum, workflow) => sum + workflow._count.downloads,
+      0
+    );
+
+    // Return formatted user profile data
+    return {
+      id: profile.id,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      username: profile.username,
+      email: profile.email,
+      profileImage: profile.profileImage,
+      bio: profile.bio,
+      createdAt: profile.createdAt,
+      totalWorkflows: profile._count.Workflow,
+      totalDownloads: totalDownloads,
+      workflows: profile.Workflow,
+    };
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    return null;
   }
 };

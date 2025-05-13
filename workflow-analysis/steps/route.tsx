@@ -30,10 +30,13 @@ export async function POST(request: NextRequest) {
       steps: stepsSuggestions,
       success: true,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error generating steps:", error);
     return NextResponse.json(
-      { error: "Failed to generate steps", details: error.message },
+      {
+        error: "Failed to generate steps",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }
@@ -202,6 +205,7 @@ async function generateSteps(workflowInfo: any) {
 
     try {
       // First try: look for a properly formatted JSON array
+      // @ts-expect-error: responseText might not match the expected JSON array format
       const arrayMatch = responseText.match(/\[\s*".*"\s*(?:,\s*".*"\s*)*\]/s);
       if (arrayMatch) {
         steps = JSON.parse(arrayMatch[0]);
@@ -236,14 +240,12 @@ async function generateSteps(workflowInfo: any) {
     }
 
     // Clean up steps - remove quotation marks and numbering if any remain
-    steps = steps.map((step) =>
+    steps = steps.map((step: string) =>
       step
         .replace(/^["']|["']$/g, "") // Remove quotes
         .replace(/^\d+\.\s*/, "") // Remove numbering
         .trim()
     );
-
-
 
     return steps;
   } catch (error) {

@@ -1,5 +1,6 @@
-// /app/api/workflow-analysis/steps/route.ts
-import { NextRequest, NextResponse } from "next/server";
+// /app/api/workflow-analysis/steps/route.js
+import { handleApiError } from "@/utils/functions/handleAPIError";
+import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
 // Initialize OpenAI client
@@ -7,7 +8,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function POST(request: NextRequest) {
+export async function POST(request) {
   try {
     // Parse the incoming JSON request
     const { workflowJson } = await request.json();
@@ -30,30 +31,22 @@ export async function POST(request: NextRequest) {
       steps: stepsSuggestions,
       success: true,
     });
-  } catch (error: any) {
-    console.error("Error generating steps:", error);
-    return NextResponse.json(
-      { error: "Failed to generate steps", details: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error, "Error generating steps");
   }
 }
 
 // Function to extract relevant information from the workflow
-function extractWorkflowInfo(workflow: any) {
+function extractWorkflowInfo(workflow) {
   // Initialize variables to store extracted information
-  const nodeTypes = new Set<string>();
-  const nodeNames: string[] = [];
-  const nodes: {
-    name: string;
-    type: string;
-    position?: { x: number; y: number };
-  }[] = [];
-  const connections: any[] = [];
+  const nodeTypes = new Set();
+  const nodeNames = [];
+  const nodes = [];
+  const connections = [];
 
   // Extract node information
   if (workflow.nodes && Array.isArray(workflow.nodes)) {
-    workflow.nodes.forEach((node: any) => {
+    workflow.nodes.forEach((node) => {
       // Store node type
       if (node.type) {
         nodeTypes.add(node.type);
@@ -76,10 +69,10 @@ function extractWorkflowInfo(workflow: any) {
   // Extract connection information
   if (workflow.connections && workflow.connections.main) {
     Object.entries(workflow.connections.main).forEach(
-      ([sourceNodeId, sourceConnections]: [string, any]) => {
+      ([sourceNodeId, sourceConnections]) => {
         if (sourceConnections) {
           Object.entries(sourceConnections).forEach(
-            ([outputIndex, outputs]: [string, any]) => {
+            ([outputIndex, outputs]) => {
               if (Array.isArray(outputs)) {
                 outputs.forEach((output) => {
                   connections.push({
@@ -130,7 +123,7 @@ function extractWorkflowInfo(workflow: any) {
   };
 }
 
-async function generateSteps(workflowInfo: any) {
+async function generateSteps(workflowInfo) {
   try {
     // Create a prompt for OpenAI
     const prompt = `
@@ -153,7 +146,7 @@ async function generateSteps(workflowInfo: any) {
       Nodes in approximate execution order:
       ${workflowInfo.sortedNodes
         .map(
-          (node: any, index: number) =>
+          (node, index) =>
             `${index + 1}. ${node.name} (${node.type})`
         )
         .join("\n")}
@@ -202,6 +195,7 @@ async function generateSteps(workflowInfo: any) {
 
     try {
       // First try: look for a properly formatted JSON array
+      // @ts-expect-error: Match may not return a valid JSON array
       const arrayMatch = responseText.match(/\[\s*".*"\s*(?:,\s*".*"\s*)*\]/s);
       if (arrayMatch) {
         steps = JSON.parse(arrayMatch[0]);
@@ -242,8 +236,6 @@ async function generateSteps(workflowInfo: any) {
         .replace(/^\d+\.\s*/, "") // Remove numbering
         .trim()
     );
-
-
 
     return steps;
   } catch (error) {

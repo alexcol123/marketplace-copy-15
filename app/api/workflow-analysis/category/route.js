@@ -1,5 +1,5 @@
-// api/workflow-analysis/category/route.ts
-import { NextRequest, NextResponse } from "next/server";
+// api/workflow-analysis/category/route.js
+import { NextResponse } from "next/server";
 import { OpenAI } from "openai";
 
 // Initialize OpenAI client
@@ -7,7 +7,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function POST(req: NextRequest) {
+export async function POST(req) {
   try {
     const { workflowJson, title, description } = await req.json();
 
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     // Create a description of the workflow based on the JSON
     const nodeTypes = (workflowJson.nodes || [])
-      .map((node: { type?: string }) => node.type || "")
+      .map((node) => node.type || "")
       .filter(Boolean);
     const uniqueNodeTypes = [...new Set(nodeTypes)];
 
@@ -87,9 +87,6 @@ Respond with only the category name from the list, nothing else.`,
       ?.trim()
       .toLowerCase();
 
-    // Add logging for debugging
- 
-
     // Validate that the category is in our list
     if (category && categories.includes(category)) {
       return NextResponse.json({
@@ -98,7 +95,6 @@ Respond with only the category name from the list, nothing else.`,
       });
     } else {
       // Default to "other" if no valid category was determined
-
       return NextResponse.json({
         success: true,
         category: "other",

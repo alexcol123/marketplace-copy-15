@@ -44,17 +44,13 @@ function getGreeting() {
 }
 
 // Helper to format category names for display
-function formatCategoryName(name) {
+function formatCategoryName(name:string) {
   return name.split('_').map(word => 
     word.charAt(0).toUpperCase() + word.slice(1)
   ).join(' ');
 }
 
-// Get day of week
-function getDayOfWeek() {
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  return days[new Date().getDay()];
-}
+
 
 async function Dashboard() {
   // Fetch profile and stats server-side
@@ -110,7 +106,7 @@ async function Dashboard() {
       level: "Expert",
       color: "bg-purple-500",
       textColor: "text-purple-500",
-      next: null,
+      next: 0,
       message: "You've reached Expert status! Keep creating amazing workflows."
     };
   } else if (totalWorkflows >= 10) {
@@ -155,7 +151,7 @@ async function Dashboard() {
                   {progressStatus.level}
                 </Badge>
               )}
-              <CreateNewWorkflowButton className="shadow-md hover:shadow-lg" />
+              <CreateNewWorkflowButton  />
             </div>
           </div>
           
@@ -178,7 +174,7 @@ async function Dashboard() {
             </CardHeader>
             <CardContent className="pt-4">
               <blockquote className="border-l-4 border-amber-200 dark:border-amber-700/50 pl-4 italic text-muted-foreground">
-                "{dailyQuote}"
+                &quot;{dailyQuote}&quot;
               </blockquote>
             </CardContent>
           </Card>
@@ -459,7 +455,7 @@ async function Dashboard() {
                 <div>
                   <h4 className="font-medium text-blue-800 dark:text-blue-300">Category Insight</h4>
                   <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-                    You're most active with <span className="font-semibold">AI workflows</span> ({Math.round((categoriesUsed[0].count / totalWorkflows) * 100)}% of total). 
+                    You&apos;re most active with <span className="font-semibold">AI workflows</span> ({Math.round((categoriesUsed[0].count / totalWorkflows) * 100)}% of total). 
                     Consider exploring <span className="font-semibold">{categoriesUsed.length > 3 ? formatCategoryName(categoriesUsed[categoriesUsed.length - 1].name) : "other categories"}</span> to diversify your portfolio.
                   </p>
                 </div>

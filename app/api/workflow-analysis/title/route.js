@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import {  NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 // Initialize OpenAI client
@@ -6,7 +6,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function POST(request: NextRequest) {
+export async function POST(request) {
   try {
     // Parse the incoming JSON request
     const { workflowJson } = await request.json();
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       success: true
     });
     
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error analyzing workflow:', error);
     return NextResponse.json(
       { error: 'Failed to analyze workflow', details: error.message },
@@ -40,15 +40,15 @@ export async function POST(request: NextRequest) {
 }
 
 // Function to extract relevant information from the workflow
-function extractWorkflowInfo(workflow: any) {
+function extractWorkflowInfo(workflow) {
   // Initialize variables to store extracted information
-  const nodeTypes = new Set<string>();
-  const nodeNames: string[] = [];
-  const triggerNodes: {name: string, type: string}[] = [];
+  const nodeTypes = new Set();
+  const nodeNames = [];
+  const triggerNodes = [];
   
   // Extract node information
   if (workflow.nodes && Array.isArray(workflow.nodes)) {
-    workflow.nodes.forEach((node: any) => {
+    workflow.nodes.forEach((node) => {
       // Store node type
       if (node.type) {
         nodeTypes.add(node.type);
@@ -91,7 +91,7 @@ function extractWorkflowInfo(workflow: any) {
   };
 }
 
-async function generateTitle(workflowInfo: any) {
+async function generateTitle(workflowInfo) {
   try {
     // Create a prompt for OpenAI
     const prompt = `
@@ -102,7 +102,7 @@ async function generateTitle(workflowInfo: any) {
       ${workflowInfo.workflowDescription ? `Description: ${workflowInfo.workflowDescription}` : 'No description provided'}
       Node types used: ${workflowInfo.nodeTypes.join(', ')}
       Node names: ${workflowInfo.nodeNames.join(', ')}
-      Trigger nodes: ${workflowInfo.triggerNodes.map((t: {name: string, type: string}) => `${t.name} (${t.type})`).join(', ') || 'None identified'}
+      Trigger nodes: ${workflowInfo.triggerNodes.map(t => `${t.name} (${t.type})`).join(', ') || 'None identified'}
       Total nodes: ${workflowInfo.nodeCount}
       Total connections: ${workflowInfo.connectionCount}
       

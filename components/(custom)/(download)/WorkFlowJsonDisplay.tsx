@@ -23,9 +23,11 @@ import { useAuth } from "@clerk/nextjs";
 interface WorkflowJsonDisplayProps {
   workflowContent: string | JsonObject | JsonValue;
   title?: string;
+  workflowId :string
 }
 
 const WorkflowJsonDisplay = ({
+  workflowId,
   workflowContent,
   title = "Workflow",
 }: WorkflowJsonDisplayProps) => {
@@ -91,16 +93,16 @@ const WorkflowJsonDisplay = ({
         
         {/* Display tags if available */}
         {workflowInfo.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {workflowInfo.tags.map((tag, index) => (
+            <div className="flex flex-wrap gap-2 mt-3">
+            {workflowInfo.tags.map((tag: string, index: number) => (
               <Badge 
-                key={index} 
-                className="bg-primary/10 text-primary border-primary/20"
+              key={index} 
+              className="bg-primary/10 text-primary border-primary/20"
               >
-                {tag}
+              {tag}
               </Badge>
             ))}
-          </div>
+            </div>
         )}
       </CardHeader>
 
@@ -149,6 +151,7 @@ const WorkflowJsonDisplay = ({
           )}
 
           <WorkflowJsonDownloadButton
+          workflowId={workflowId}
             workflowContent={workflowContent}
             title={title}
           />

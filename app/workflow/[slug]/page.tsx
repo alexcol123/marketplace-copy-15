@@ -1,3 +1,4 @@
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { fetchSingleWorkflow } from "@/utils/actions";
@@ -12,11 +13,8 @@ import {
 } from "@/components/ui/card";
 
 import {
-  ArrowLeft,
   CalendarIcon,
   Clock,
-  Heart,
-  Share2,
   Eye,
   BarChart,
   Users,
@@ -34,6 +32,61 @@ import WorkflowJsonDisplay from "@/components/(custom)/(download)/WorkFlowJsonDi
 import { WorkflowJsonDownloadButton } from "@/components/(custom)/(download)/WorkflowJsonDownloadButton";
 import ShareButton from "@/components/(custom)/(landing)/ShareButton";
 
+import { ReturnToWorkflowsBtn } from "@/components/(custom)/(dashboard)/Form/Buttons";
+import { Workflow, Profile } from "@prisma/client";
+import EmptyList from "@/components/(custom)/EmptyList";
+
+type WorkflowWithAuthor = Workflow & {
+  author: Profile;
+};
+
+interface ErrorResponse {
+  message: string;
+  success: boolean;
+}
+
+function isErrorResponse(obj: unknown): obj is ErrorResponse {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    "message" in obj &&
+    "success" in obj &&
+    typeof (obj as ErrorResponse).message === "string" &&
+    typeof (obj as ErrorResponse).success === "boolean"
+  );
+}
+
+// Helper function to calculate workflow complexity - moved outside component for reuse in metadata
+const getWorkflowComplexity = (
+  workflowJson: unknown,
+  workflowCharactersLength: number
+) => {
+  // Get the node count
+  let nodeCount = 0;
+  try {
+    nodeCount = typeof workflowJson === "object" && workflowJson !== null && Array.isArray((workflowJson as { nodes: unknown[] }).nodes)
+      ? Array.isArray((workflowJson as { nodes: unknown[] }).nodes)
+        ? (workflowJson as { nodes: unknown[] }).nodes.length
+        : 0
+      : 0;
+  } catch {
+    nodeCount = 0;
+  }
+
+  // First consider node count
+  if (nodeCount >= 13) return "Advanced";
+  if (nodeCount >= 7) return "Intermediate";
+
+  // If node count is low, fallback to character length
+  if (workflowCharactersLength > 6000) return "Advanced";
+  if (workflowCharactersLength > 4000) return "Intermediate";
+
+  // Default to Basic
+  return "Basic";
+};
+
+
+
 const SingleWorkflowPage = async ({
   params,
 }: {
@@ -41,39 +94,42 @@ const SingleWorkflowPage = async ({
 }) => {
   const { slug } = await params;
 
-  const workflow = await fetchSingleWorkflow(slug);
+  const result = await fetchSingleWorkflow(slug);
 
-  if (!workflow) {
+  // Check if result is an error response
+  if (!result || isErrorResponse(result)) {
     return notFound();
   }
 
-  const workflowCharactersLength = JSON.stringify(workflow.workFlowJson).length;
+  // At this point, TypeScript knows result must be a WorkflowWithAuthor
+  const workflow = result as WorkflowWithAuthor;
+
+
+  if (!workflow) {
+    return <EmptyList />;
+  }
+
+  const workflowCharactersLength = JSON.stringify(
+    workflow?.workFlowJson
+  ).length;
 
   // Get the number of nodes in the workflow
   const getNodeCount = () => {
     try {
       const data = workflow.workFlowJson;
-      return Array.isArray(data.nodes) ? data.nodes.length : 0;
-    } catch (error) {
+      return data && typeof data === "object" && "nodes" in data && Array.isArray(data.nodes) ? data.nodes.length : 0;
+    } catch  {
       return 0;
     }
   };
 
   const nodeCount = getNodeCount();
 
-  // Updated complexity function that considers both JSON size and node count
-  const getWorkflowComplexity = () => {
-    // First consider node count
-    if (nodeCount >= 13) return "Advanced";
-    if (nodeCount >= 7) return "Intermediate";
-
-    // If node count is low, fallback to character length
-    if (workflowCharactersLength > 6000) return "Advanced";
-    if (workflowCharactersLength > 4000) return "Intermediate";
-
-    // Default to Basic
-    return "Basic";
-  };
+  // Use the shared complexity function
+  const complexity = getWorkflowComplexity(
+    workflow.workFlowJson,
+    workflowCharactersLength
+  );
 
   // Format the content into paragraphs for better readability
   const contentParagraphs = workflow?.content?.split(/\n+/) || [];
@@ -98,7 +154,9 @@ const SingleWorkflowPage = async ({
   const wordsContentLength = workflow?.content?.split(/\s+/).length || 0;
 
   // Count words in steps, properly handling each step
+  
   const wordStepsLength = workflow?.steps
+  // @ts-expect-error: Steps may contain non-string values, handled safely
     ? workflow.steps.reduce((total, step) => {
         return (
           total + (typeof step === "string" ? step.split(/\s+/).length : 0)
@@ -114,17 +172,13 @@ const SingleWorkflowPage = async ({
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-8">
+      {/* Add JSON-LD Schema for SEO */}
+      
+
+
       {/* Back button */}
       <div className="mb-6">
-        <Link href="/">
-          <Button
-            variant="outline"
-            className="pl-2 hover:bg-primary/5 hover:text-primary transition-colors group"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-            Return to Workflow Library
-          </Button>
-        </Link>
+        <ReturnToWorkflowsBtn />
       </div>
 
       {/* Hero section with improved spacing and animations */}
@@ -140,8 +194,11 @@ const SingleWorkflowPage = async ({
         </h1>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 pt-2">
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-12 w-12 border-2 border-background shadow-md">
+          <Link
+            href={`/authors/${workflow.author.username}`}
+            className="flex items-center space-x-4 "
+          >
+            <Avatar className="h-12 w-12 border-2 border-background shadow-md ">
               <AvatarImage
                 src={workflow.author.profileImage}
                 alt={`${workflow.author.firstName} ${workflow.author.lastName}`}
@@ -153,8 +210,8 @@ const SingleWorkflowPage = async ({
                 )}
               </AvatarFallback>
             </Avatar>
-            <div className="space-y-1">
-              <h3 className="text-sm font-medium text-foreground">
+            <div className="space-y-1  text-foreground  hover:text-primary">
+              <h3 className="text-sm font-medium">
                 {workflow.author.firstName} {workflow.author.lastName}
               </h3>
               <div className="flex items-center text-xs text-muted-foreground">
@@ -168,16 +225,16 @@ const SingleWorkflowPage = async ({
                 <span>{workflow.viewCount.toLocaleString()} views</span>
               </div>
             </div>
-          </div>
+          </Link>
 
           <div className="flex space-x-2 mt-3 sm:mt-0">
-          <ShareButton 
-  propertyId={workflow.slug} 
-  name={workflow.title} 
-  description={workflow.content} 
-  imageUrl={workflow.workflowImage}
-  variant='default'
-/>
+            <ShareButton
+              propertyId={workflow.slug}
+              name={workflow.title}
+              description={workflow.content}
+              imageUrl={workflow.workflowImage}
+              variant="default"
+            />
           </div>
         </div>
       </div>
@@ -236,7 +293,7 @@ const SingleWorkflowPage = async ({
                 <strong className="mr-2 text-primary/80">
                   Difficulty Level:
                 </strong>{" "}
-                {getWorkflowComplexity()}
+                {complexity}
               </span>
             </div>
             <div className="flex items-center gap-3 p-2 rounded-md bg-primary/5 border border-primary/10">
@@ -357,6 +414,7 @@ const SingleWorkflowPage = async ({
           <div className="p-1 border rounded-xl bg-gradient-to-r from-primary/30 via-primary/20 to-primary/10 shadow-md">
             <WorkflowJsonDisplay
               workflowContent={workflow.workFlowJson}
+            workflowId= {workflow.id}
               title={workflow.title}
             />
           </div>
@@ -371,7 +429,10 @@ const SingleWorkflowPage = async ({
           Workflow Creator
         </h2>
         <section className="flex flex-col items-start gap-6 p-8 bg-primary/5 rounded-xl border border-primary/15 shadow-md">
-          <div className="flex items-center gap-4">
+          <Link
+            href={`/authors/${workflow.author.username}`}
+            className="flex items-center gap-4 border border-muted/0 rounded-3xl px-1 hover:border-primary"
+          >
             <div className="rounded-full p-1 bg-gradient-to-r from-primary/30 to-primary/10">
               <Image
                 width={72}
@@ -387,16 +448,14 @@ const SingleWorkflowPage = async ({
                 {workflow.author.firstName} {workflow.author.lastName}
               </span>
             </h3>
-          </div>
+          </Link>
 
           <div className="space-y-3 pl-2">
             <p className="text-muted-foreground leading-relaxed">
               {workflow.author.bio ||
                 "This creator specializes in building automation workflows that save time and increase productivity."}
             </p>
-            <Link
-              href={`/authors/${workflow.author.firstName.toLowerCase()}-${workflow.author.lastName.toLowerCase()}`}
-            >
+            <Link href={`/authors/${workflow.author.username}`}>
               <Button
                 variant="outline"
                 size="sm"

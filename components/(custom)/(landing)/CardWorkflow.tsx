@@ -159,9 +159,10 @@ export default function CardWorkflow({
             {truncatedContent}
           </CardDescription>
 
-          <div className="flex items-center justify-between pt-2">
-            <div className="flex items-center space-x-2">
-              <Avatar className="h-8 w-8 border border-primary/10">
+          <div className="flex items-center justify-between pt-2 group ">
+            <Link href={`/authors/${workflows.author.username}`
+            } className="flex items-center space-x-2 border border-muted p-1 rounded hover:border-primary">
+              <Avatar className="h-8 w-8 border border-primary/10 ">
                 <AvatarImage
                   src={workflows?.author?.profileImage}
                   alt={`${workflows?.author?.firstName} ${workflows?.author?.lastName}`}
@@ -176,7 +177,7 @@ export default function CardWorkflow({
               <span className="text-sm font-medium text-foreground">
                 {workflows?.author?.firstName} {workflows?.author?.lastName}
               </span>
-            </div>
+            </Link>
 
             <div className="flex items-center text-xs text-muted-foreground">
               <CalendarIcon className="mr-1 h-3 w-3" />
@@ -227,7 +228,7 @@ export default function CardWorkflow({
               Confirm Workflow Deletion
             </DialogTitle>
             <DialogDescription className="pt-2">
-              Are you sure you want to delete <span className="font-medium text-foreground">"{workflows?.title.replace(/^"(.+)"$/, "$1")}"</span>?
+              Are you sure you want to delete <span className="font-medium text-foreground">&quot;{workflows?.title.replace(/^"(.+)"$/, "$1")}&quot;</span>?
             </DialogDescription>
           </DialogHeader>
           

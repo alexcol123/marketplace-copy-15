@@ -1,4 +1,3 @@
-
 import { CreateProfileAction } from "@/utils/actions";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
@@ -10,6 +9,8 @@ const CreateProfileComponent = async () => {
   const user = await currentUser();
   const hasProfile = user?.privateMetadata.hasProfile;
 
+  
+
   if (hasProfile) {
     redirect("/dashboard/profile");
   }
@@ -20,7 +21,9 @@ const CreateProfileComponent = async () => {
         Create Your Profile
       </h1>
 
-      <h2 className="text-primary my-6 font-semibold animate-pulse  ">You must create your profile before you can continue to  Dashboard</h2>
+      <h2 className="text-primary my-6 font-semibold animate-pulse  ">
+        You must create your profile before you can continue to Dashboard
+      </h2>
       <div className="border p-8 rounded-md">
         <FormContainer action={CreateProfileAction}>
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
@@ -54,4 +57,3 @@ const CreateProfileComponent = async () => {
 };
 
 export default CreateProfileComponent;
-

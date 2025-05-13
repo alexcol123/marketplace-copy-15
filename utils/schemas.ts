@@ -10,9 +10,12 @@ export const profileSchema = z.object({
   lastName: z.string().min(2, {
     message: "last name must be at least 2 characters",
   }),
-  username: z.string().min(2, {
-    message: "username must be at least 2 characters",
-  }),
+   username: z.string()
+    .min(3, { message: "username must be at least 3 characters" })
+    .max(20, { message: "username must be at most 20 characters" })
+    .regex(/^[a-zA-Z0-9_]+$/, { 
+      message: "username can only contain letters, numbers, and underscores" 
+    }),
   bio: z
     .string()
     .max(500, {

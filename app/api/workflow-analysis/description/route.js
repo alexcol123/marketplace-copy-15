@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import {  NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 // Initialize OpenAI client
@@ -6,7 +6,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export async function POST(request: NextRequest) {
+export async function POST(request) {
   try {
     // Parse the incoming JSON request
     const { workflowJson } = await request.json();
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error generating description:', error);
     return NextResponse.json(
-      { error: 'Failed to generate description', details: (error as Error)?.message },
+      { error: 'Failed to generate description', details: error?.message || 'Unknown error' },
       { status: 500 }
     );
   }
@@ -42,55 +42,40 @@ export async function POST(request: NextRequest) {
 // Function to extract relevant information from the workflow
 function extractWorkflowInfo(workflow) {
   // Initialize variables to store extracted information
-  const nodeTypes = new Set<string>();
-  const nodeNames: string[] = [];
-  const triggerNodes: {name: string, type: string}[] = [];
-  const actionNodes: {name: string, type: string}[] = [];
+  const nodeTypes = new Set();
+  const nodeNames = [];
+  const triggerNodes = [];
+  const actionNodes = [];
   
   // Extract node information
   if (workflow.nodes && Array.isArray(workflow.nodes)) {
-    interface Node {
-      type?: string;
-      name?: string;
-    }
-
-    interface TriggerNode {
-      name: string;
-      type: string;
-    }
-
-    interface ActionNode {
-      name: string;
-      type: string;
-    }
-
-    workflow.nodes.forEach((node: Node) => {
+    workflow.nodes.forEach((node) => {
       // Store node type
       if (node.type) {
-      nodeTypes.add(node.type);
+        nodeTypes.add(node.type);
       }
       
       // Store node name
       if (node.name) {
-      nodeNames.push(node.name);
+        nodeNames.push(node.name);
       }
       
       // Identify trigger nodes
       if (node.type && (
-      node.type.includes('Trigger') || 
-      node.type.includes('webhook') ||
-      node.type.startsWith('n8n-nodes-base.webhook')
+        node.type.includes('Trigger') || 
+        node.type.includes('webhook') ||
+        node.type.startsWith('n8n-nodes-base.webhook')
       )) {
-      triggerNodes.push({
-        name: node.name as string,
-        type: node.type
-      } as TriggerNode);
-      } else {
-      // Store action nodes separately
-      actionNodes.push({
-        name: node.name as string,
-        type: node.type
-      } as ActionNode);
+        triggerNodes.push({
+          name: node.name,
+          type: node.type
+        });
+      } else if (node.type && node.name) {
+        // Store action nodes separately
+        actionNodes.push({
+          name: node.name,
+          type: node.type
+        });
       }
     });
   }
@@ -110,22 +95,11 @@ function extractWorkflowInfo(workflow) {
     workflowName,
     workflowDescription,
     nodeCount: workflow.nodes?.length || 0,
-    connectionCount: workflow.connections?.length || 0
+    connectionCount: workflow.connections ? Object.keys(workflow.connections).length : 0
   };
 }
 
-interface WorkflowInfo {
-  nodeTypes: string[];
-  nodeNames: string[];
-  triggerNodes: { name: string; type: string }[];
-  actionNodes: { name: string; type: string }[];
-  workflowName: string;
-  workflowDescription: string;
-  nodeCount: number;
-  connectionCount: number;
-}
-
-async function generateDescription(workflowInfo: WorkflowInfo): Promise<string> {
+async function generateDescription(workflowInfo) {
   try {
     // Create a prompt for OpenAI
     const prompt = `
@@ -135,8 +109,8 @@ async function generateDescription(workflowInfo: WorkflowInfo): Promise<string> 
       ${workflowInfo.workflowName ? `Current name: ${workflowInfo.workflowName}` : 'No current name'}
       ${workflowInfo.workflowDescription ? `Original description: ${workflowInfo.workflowDescription}` : 'No original description provided'}
       Node types used: ${workflowInfo.nodeTypes.join(', ')}
-      Trigger nodes: ${workflowInfo.triggerNodes.map((t: { name: string; type: string }) => `${t.name} (${t.type})`).join(', ') || 'None identified'}
-      Action nodes: ${workflowInfo.actionNodes.map((a: { name: string; type: string }) => `${a.name} (${a.type})`).join(', ')}
+      Trigger nodes: ${workflowInfo.triggerNodes.map(t => `${t.name} (${t.type})`).join(', ') || 'None identified'}
+      Action nodes: ${workflowInfo.actionNodes.map(a => `${a.name} (${a.type})`).join(', ')}
       Total nodes: ${workflowInfo.nodeCount}
       Total connections: ${workflowInfo.connectionCount}
       
