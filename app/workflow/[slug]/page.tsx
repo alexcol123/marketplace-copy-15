@@ -34,6 +34,9 @@ import ShareButton from "@/components/(custom)/(landing)/ShareButton";
 import { ReturnToWorkflowsBtn } from "@/components/(custom)/(dashboard)/Form/Buttons";
 import { Workflow, Profile } from "@prisma/client";
 import EmptyList from "@/components/(custom)/EmptyList";
+import YouTubeVideoPlayer from "@/components/(custom)/(video)/YoutubeVideoPlayer";
+// Import the YouTube player component
+
 
 type WorkflowWithAuthor = Workflow & {
   author: Profile;
@@ -343,6 +346,14 @@ const SingleWorkflowPage = async ({
           </CardContent>
         </Card>
       </section>
+
+      {/* Add YouTube Video Player section - right after the description */}
+      {workflow.videoUrl && (
+        <YouTubeVideoPlayer
+          videoUrl={workflow.videoUrl}
+          title={workflow.title}
+        />
+      )}
 
       {workflow?.steps &&
         Array.isArray(workflow.steps) &&

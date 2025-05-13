@@ -10,11 +10,12 @@ export const profileSchema = z.object({
   lastName: z.string().min(2, {
     message: "last name must be at least 2 characters",
   }),
-   username: z.string()
+  username: z
+    .string()
     .min(3, { message: "username must be at least 3 characters" })
     .max(20, { message: "username must be at most 20 characters" })
-    .regex(/^[a-zA-Z0-9_]+$/, { 
-      message: "username can only contain letters, numbers, and underscores" 
+    .regex(/^[a-zA-Z0-9_]+$/, {
+      message: "username can only contain letters, numbers, and underscores",
     }),
   bio: z
     .string()
@@ -83,9 +84,6 @@ export const CategoryTypeEnum = z.nativeEnum(CategoryType, {
   },
 });
 
-
-
-
 // Updated schema
 export const workflowSchema = z.object({
   title: z
@@ -100,8 +98,11 @@ export const workflowSchema = z.object({
     message: "Content must be at least 100 characters.",
   }),
   category: CategoryTypeEnum,
-  steps: z
+  steps: z.string().optional().default("[]"),
+
+  videoUrl: z
     .string()
+    .url("Please enter a valid URL")
     .optional()
-    .default("[]")
+    .or(z.literal("")), // Allow empty string
 });

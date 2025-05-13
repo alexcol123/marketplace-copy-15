@@ -16,7 +16,7 @@ model Profile {
   clerkId           String             @unique
   firstName         String
   lastName          String
-  username          String           @unique
+  username          String             @unique
   email             String
   profileImage      String
   bio               String?
@@ -31,14 +31,15 @@ model Workflow {
   title             String
   content           String             @db.Text
   workflowImage     String
+  videoUrl          String?
   slug              String             @unique
   authorId          String
   author            Profile            @relation(fields: [authorId], references: [clerkId], onDelete: Cascade)
   category          CategoryType
   viewCount         Int                @default(0)
   workFlowJson      Json               @default("{}")
-  steps             Json?              // Optional JSON array of step text strings
-  verifiedAndTested Boolean            @default(false)  // New field with default value of false
+  steps             Json? // Optional JSON array of step text strings
+  verifiedAndTested Boolean            @default(false) // New field with default value of false
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   downloads         WorkflowDownload[] // Add this relation

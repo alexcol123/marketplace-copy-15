@@ -242,8 +242,6 @@ export const createWorkflowAction = async (
     const rawData = Object.fromEntries(formData);
     const file = formData.get("image") as File;
 
-    console.log(file);
-
     if (!file || file.size === 0) {
       return { message: "Image file is required" };
     }
@@ -256,6 +254,8 @@ export const createWorkflowAction = async (
       content: rawData.content,
       category: rawData.category,
       steps: rawData.steps,
+      // Include videoUrl in validation
+      videoUrl: rawData.videoUrl || "",
     });
 
     // Validate and process the file
@@ -293,6 +293,9 @@ export const createWorkflowAction = async (
       console.error("Error parsing steps:", error);
     }
 
+    // Extract videoUrl from the form data
+    const videoUrl = rawData.videoUrl ? rawData.videoUrl.toString() : null;
+
     // Create the workflow data
     const workflowData = {
       title: validatedFields.title,
@@ -304,6 +307,7 @@ export const createWorkflowAction = async (
       authorId: user.id,
       workFlowJson,
       steps,
+      videoUrl, // Add the videoUrl field to the database
     };
 
     await db.workflow.create({
