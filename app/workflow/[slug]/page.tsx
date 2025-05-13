@@ -1,4 +1,3 @@
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { fetchSingleWorkflow } from "@/utils/actions";
@@ -64,11 +63,14 @@ const getWorkflowComplexity = (
   // Get the node count
   let nodeCount = 0;
   try {
-    nodeCount = typeof workflowJson === "object" && workflowJson !== null && Array.isArray((workflowJson as { nodes: unknown[] }).nodes)
-      ? Array.isArray((workflowJson as { nodes: unknown[] }).nodes)
-        ? (workflowJson as { nodes: unknown[] }).nodes.length
-        : 0
-      : 0;
+    nodeCount =
+      typeof workflowJson === "object" &&
+      workflowJson !== null &&
+      Array.isArray((workflowJson as { nodes: unknown[] }).nodes)
+        ? Array.isArray((workflowJson as { nodes: unknown[] }).nodes)
+          ? (workflowJson as { nodes: unknown[] }).nodes.length
+          : 0
+        : 0;
   } catch {
     nodeCount = 0;
   }
@@ -84,8 +86,6 @@ const getWorkflowComplexity = (
   // Default to Basic
   return "Basic";
 };
-
-
 
 const SingleWorkflowPage = async ({
   params,
@@ -104,7 +104,6 @@ const SingleWorkflowPage = async ({
   // At this point, TypeScript knows result must be a WorkflowWithAuthor
   const workflow = result as WorkflowWithAuthor;
 
-
   if (!workflow) {
     return <EmptyList />;
   }
@@ -117,8 +116,13 @@ const SingleWorkflowPage = async ({
   const getNodeCount = () => {
     try {
       const data = workflow.workFlowJson;
-      return data && typeof data === "object" && "nodes" in data && Array.isArray(data.nodes) ? data.nodes.length : 0;
-    } catch  {
+      return data &&
+        typeof data === "object" &&
+        "nodes" in data &&
+        Array.isArray(data.nodes)
+        ? data.nodes.length
+        : 0;
+    } catch {
       return 0;
     }
   };
@@ -154,10 +158,10 @@ const SingleWorkflowPage = async ({
   const wordsContentLength = workflow?.content?.split(/\s+/).length || 0;
 
   // Count words in steps, properly handling each step
-  
+
   const wordStepsLength = workflow?.steps
-  // @ts-expect-error: Steps may contain non-string values, handled safely
-    ? workflow.steps.reduce((total, step) => {
+    ? // @ts-expect-error: Steps may contain non-string values, handled safely
+      workflow.steps.reduce((total, step) => {
         return (
           total + (typeof step === "string" ? step.split(/\s+/).length : 0)
         );
@@ -173,8 +177,6 @@ const SingleWorkflowPage = async ({
   return (
     <main className="max-w-6xl mx-auto px-4 py-8">
       {/* Add JSON-LD Schema for SEO */}
-      
-
 
       {/* Back button */}
       <div className="mb-6">
@@ -342,8 +344,6 @@ const SingleWorkflowPage = async ({
         </Card>
       </section>
 
-      {/* How It Works Section - Enhanced Design */}
-      {/* How It Works Section - Updated for clarity about n8n workflow steps */}
       {workflow?.steps &&
         Array.isArray(workflow.steps) &&
         workflow.steps.length > 0 && (
@@ -353,12 +353,12 @@ const SingleWorkflowPage = async ({
             </h2>
 
             <Card className="overflow-hidden border-primary/20 shadow-lg pt-0 rounded-xl bg-gradient-to-b from-background to-muted/20 hover:shadow-xl transition-shadow duration-300">
-              <CardHeader className="bg-gradient-to-r from-primary/15 to-transparent border-b border-primary/20 py-6">
-                <CardTitle className="text-xl font-bold text-center flex items-center justify-center gap-2">
-                  <BarChart className="h-5 w-5 text-primary/80" />
-                  What This Workflow Automates
+              <CardHeader className="bg-gradient-to-r from-primary/15 to-transparent border-b border-primary/20 py-4 sm:py-6">
+                <CardTitle className="text-lg sm:text-xl font-bold text-center flex items-center justify-center gap-2">
+                  <BarChart className="h-4 w-4 sm:h-5 sm:w-5 text-primary/80 flex-shrink-0" />
+                  <span>What This Workflow Automates</span>
                 </CardTitle>
-                <CardDescription className="text-center pt-2">
+                <CardDescription className="text-center pt-1 sm:pt-2 text-xs sm:text-sm">
                   Follow this sequence to understand what this n8n workflow will
                   do for you
                 </CardDescription>
@@ -370,14 +370,14 @@ const SingleWorkflowPage = async ({
                     key={index}
                     className="border-b border-primary/10 last:border-0"
                   >
-                    <div className="flex gap-5 items-start p-5 hover:bg-primary/5 transition-all duration-200">
+                    <div className="flex gap-3 sm:gap-5 items-start p-3 sm:p-5 hover:bg-primary/5 transition-all duration-200">
                       <div className="flex-shrink-0">
-                        <div className="flex items-center justify-center h-12 w-12 rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-bold text-xl shadow-md transform hover:scale-105 transition-transform">
+                        <div className="flex items-center justify-center h-8 w-8 sm:h-12 sm:w-12 rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-bold text-base sm:text-xl shadow-md transform hover:scale-105 transition-transform">
                           {index + 1}
                         </div>
                       </div>
-                      <div className="flex-grow pt-2">
-                        <p className="text-muted-foreground/90 leading-relaxed">
+                      <div className="flex-grow pt-1 sm:pt-2">
+                        <p className="text-muted-foreground/90 leading-relaxed text-sm sm:text-base">
                           {typeof step === "object"
                             ? JSON.stringify(step, null, 2)
                             : step}
@@ -388,8 +388,8 @@ const SingleWorkflowPage = async ({
                 ))}
               </CardContent>
 
-              <div className="p-5 bg-primary/5 border-t border-primary/10">
-                <p className="text-sm text-center text-muted-foreground">
+              <div className="p-3 sm:p-5 bg-primary/5 border-t border-primary/10">
+                <p className="text-xs sm:text-sm text-center text-muted-foreground">
                   Download this workflow to automate these steps in your own n8n
                   instance
                 </p>
@@ -414,7 +414,7 @@ const SingleWorkflowPage = async ({
           <div className="p-1 border rounded-xl bg-gradient-to-r from-primary/30 via-primary/20 to-primary/10 shadow-md">
             <WorkflowJsonDisplay
               workflowContent={workflow.workFlowJson}
-            workflowId= {workflow.id}
+              workflowId={workflow.id}
               title={workflow.title}
             />
           </div>

@@ -1,9 +1,12 @@
+
+//  workflowId :string
+
 "use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Copy, Check, Code, Eye, EyeOff, FileCode } from "lucide-react";
+import { Copy, Check, Code, Eye, EyeOff, FileCode, ExternalLink } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -23,13 +26,13 @@ import { useAuth } from "@clerk/nextjs";
 interface WorkflowJsonDisplayProps {
   workflowContent: string | JsonObject | JsonValue;
   title?: string;
-  workflowId :string
+  workflowId: string
 }
 
 const WorkflowJsonDisplay = ({
-  workflowId,
   workflowContent,
   title = "Workflow",
+  workflowId
 }: WorkflowJsonDisplayProps) => {
   const [copied, setCopied] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -75,17 +78,17 @@ const WorkflowJsonDisplay = ({
   const workflowInfo = getWorkflowInfo();
 
   return (
-    <Card className="border-primary/20 overflow-hidden shadow-md hover:shadow-xl transition-all duration-300">
-      <CardHeader className="bg-gradient-to-r from-primary/15 via-primary/10 to-transparent border-b border-primary/10 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-primary/15 rounded-full shadow-md">
-            <FileCode className="h-5 w-5 text-primary" />
+    <Card className="border-primary/20 overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 w-full">
+      <CardHeader className="bg-gradient-to-r from-primary/15 via-primary/10 to-transparent border-b border-primary/10 pb-4 px-4 sm:px-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="p-2.5 bg-primary/15 rounded-full shadow-md shrink-0 flex items-center justify-center w-10 h-10">
+            <FileCode className="h-5 w-5 text-primary flex-shrink-0" />
           </div>
-          <div>
-            <CardTitle className="flex items-center gap-2 text-lg font-bold">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-base sm:text-lg font-bold truncate">
               {title}
             </CardTitle>
-            <CardDescription className="mt-1 text-muted-foreground/90">
+            <CardDescription className="mt-1 text-xs sm:text-sm text-muted-foreground/90">
               Import this automation into your n8n workflow editor
             </CardDescription>
           </div>
@@ -93,20 +96,20 @@ const WorkflowJsonDisplay = ({
         
         {/* Display tags if available */}
         {workflowInfo.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3">
+          <div className="flex flex-wrap gap-2 mt-3">
             {workflowInfo.tags.map((tag: string, index: number) => (
               <Badge 
-              key={index} 
-              className="bg-primary/10 text-primary border-primary/20"
+                key={index} 
+                className="bg-primary/10 text-primary border-primary/20"
               >
-              {tag}
+                {tag}
               </Badge>
             ))}
-            </div>
+          </div>
         )}
       </CardHeader>
 
-      <CardContent className="pt-5">
+      <CardContent className="pt-5 px-4 sm:px-6">
         <div className="flex flex-wrap gap-2 mb-4">
           {isSignedIn && (
             <>
@@ -114,17 +117,19 @@ const WorkflowJsonDisplay = ({
                 variant="outline"
                 size="sm"
                 onClick={() => setIsVisible(!isVisible)}
-                className="gap-1.5 border-primary/20 hover:bg-primary/5 hover:text-primary hover:border-primary/40 transition-all duration-200"
+                className="gap-1 border-primary/20 hover:bg-primary/5 hover:text-primary hover:border-primary/40 transition-all duration-200 flex-shrink-0"
               >
                 {isVisible ? (
                   <>
-                    <EyeOff className="h-4 w-4" />
-                    <span>Hide JSON</span>
+                    <EyeOff className="h-4 w-4 flex-shrink-0" />
+                    <span className="hidden sm:inline">Hide JSON</span>
+                    <span className="sm:hidden">Hide</span>
                   </>
                 ) : (
                   <>
-                    <Eye className="h-4 w-4" />
-                    <span>View JSON</span>
+                    <Eye className="h-4 w-4 flex-shrink-0" />
+                    <span className="hidden sm:inline">View JSON</span>
+                    <span className="sm:hidden">View</span>
                   </>
                 )}
               </Button>
@@ -133,17 +138,19 @@ const WorkflowJsonDisplay = ({
                 variant="outline"
                 size="sm"
                 onClick={handleCopy}
-                className="gap-1.5 border-primary/20 hover:bg-primary/5 hover:text-primary hover:border-primary/40 transition-all duration-200"
+                className="gap-1 border-primary/20 hover:bg-primary/5 hover:text-primary hover:border-primary/40 transition-all duration-200 flex-shrink-0"
               >
                 {copied ? (
                   <>
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span>Copied!</span>
+                    <Check className="h-4 w-4 flex-shrink-0 text-green-500" />
+                    <span className="hidden sm:inline">Copied!</span>
+                    <span className="sm:hidden">Copied</span>
                   </>
                 ) : (
                   <>
-                    <Copy className="h-4 w-4" />
-                    <span>Copy JSON</span>
+                    <Copy className="h-4 w-4 flex-shrink-0" />
+                    <span className="hidden sm:inline">Copy JSON</span>
+                    <span className="sm:hidden">Copy</span>
                   </>
                 )}
               </Button>
@@ -151,9 +158,9 @@ const WorkflowJsonDisplay = ({
           )}
 
           <WorkflowJsonDownloadButton
-          workflowId={workflowId}
             workflowContent={workflowContent}
             title={title}
+            workflowId={workflowId}
           />
         </div>
 
@@ -161,21 +168,29 @@ const WorkflowJsonDisplay = ({
           <div className="border rounded-lg overflow-hidden bg-muted/5 border-primary/10 shadow-md">
             <div className="bg-primary/10 px-4 py-2.5 border-b border-primary/20 flex items-center justify-between">
               <div className="flex items-center">
-                <Code className="h-4 w-4 text-primary mr-2" />
+                <Code className="h-4 w-4 text-primary mr-2 flex-shrink-0" />
                 <span className="text-sm font-medium">Workflow Definition</span>
               </div>
               <Badge
                 variant="outline"
-                className="text-xs font-mono bg-primary/5 border-primary/20"
+                className="text-xs font-mono bg-primary/5 border-primary/20 ml-2 flex-shrink-0"
               >
                 JSON
               </Badge>
             </div>
-            <ScrollArea className="h-72 w-full">
-              <pre className="p-4 text-sm font-mono whitespace-pre overflow-auto bg-gradient-to-b from-transparent to-muted/5">
+            <ScrollArea className="h-40 sm:h-72 w-full">
+              <pre className="p-4 text-xs sm:text-sm font-mono whitespace-pre overflow-auto bg-gradient-to-b from-transparent to-muted/5 max-w-full">
                 {formattedWorkflow}
               </pre>
             </ScrollArea>
+            
+            {/* Mobile-friendly help text */}
+            <div className="py-2 px-3 text-xs text-center text-muted-foreground border-t border-primary/10 sm:hidden">
+              <div className="flex items-center justify-center gap-2">
+                <ExternalLink className="h-3 w-3" />
+                <span>Scroll horizontally to view full code</span>
+              </div>
+            </div>
           </div>
         )}
       </CardContent>

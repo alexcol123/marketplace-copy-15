@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,34 @@ import SignOutBtn from "./SignOutBtn";
 
 export function Sidebar({ className }: { className?: string }) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = React.useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Handle screen resize and set initial state
+  useEffect(() => {
+    // Check if window is available (client-side only)
+    if (typeof window !== 'undefined') {
+      // Function to detect mobile and manage sidebar state
+      const handleResize = () => {
+        const mobile = window.innerWidth < 768; // md breakpoint
+        setIsMobile(mobile);
+        
+        // Auto-collapse on mobile screens but keep sidebar visible
+        if (mobile && !collapsed) {
+          setCollapsed(true);
+        }
+      };
+
+      // Set initial state
+      handleResize();
+
+      // Add event listener for resize
+      window.addEventListener('resize', handleResize);
+
+      // Cleanup
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, [collapsed]);
 
   const appName = process.env.NEXT_PUBLIC_APP_NAME;
 
@@ -28,23 +55,26 @@ export function Sidebar({ className }: { className?: string }) {
       {/* Sidebar header with logo */}
       <div className="flex h-16 items-center justify-between px-4 border-b shrink-0">
         {!collapsed && (
-          <Link href={"/"} className="text-xl font-semibold text-primary">
+          <Link href={"/"} className="text-xl font-semibold text-primary truncate">
             {appName} 
           </Link>
         )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setCollapsed(!collapsed)}
-          className={cn("h-8 w-8", collapsed ? "mx-auto" : "ml-auto")}
-        >
-          <PanelRight
-            className={cn("h-4 w-4", collapsed ? "rotate-180" : "")}
-          />
-          <span className="sr-only">
-            {collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          </span>
-        </Button>
+        {/* Toggle button - hidden on mobile */}
+        {!isMobile && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setCollapsed(!collapsed)}
+            className={cn("h-8 w-8", collapsed ? "mx-auto" : "ml-auto")}
+          >
+            <PanelRight
+              className={cn("h-4 w-4", collapsed ? "rotate-180" : "")}
+            />
+            <span className="sr-only">
+              {collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            </span>
+          </Button>
+        )}
       </div>
 
       {/* Navigation menu - flex-grow to take available space */}
@@ -59,7 +89,7 @@ export function Sidebar({ className }: { className?: string }) {
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                    "flex items-center gap-3 rounded-md py-2 text-sm transition-colors",
                     isBackBtn 
                       ? "bg-gradient-to-r from-primary/10 to-transparent border-l-4 border-primary shadow-sm hover:from-primary/20 hover:to-primary/5 group" 
                       : "hover:bg-secondary hover:text-secondary-foreground",
@@ -68,7 +98,7 @@ export function Sidebar({ className }: { className?: string }) {
                       : isBackBtn
                         ? "text-primary font-medium"
                         : "text-muted-foreground",
-                    collapsed && "justify-center px-0",
+                    collapsed ? "justify-center px-2" : "px-3",
                     isBackBtn && collapsed && "border-l-4 border-primary bg-primary/10 py-3"
                   )}
                 >
