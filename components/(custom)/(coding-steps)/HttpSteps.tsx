@@ -1,3 +1,4 @@
+// components/(custom)/(coding-steps)/HttpSteps.tsx
 "use client";
 
 import React, { JSX, useState } from "react";
@@ -23,22 +24,6 @@ import { toast } from "sonner";
 // Import types from the container component
 import { HttpStepsProps, HttpStepType } from "./CodingStepsContainer";
 
-// Extended type for HTTP steps with additional properties that might exist
-type ExtendedHttpStepType = HttpStepType & {
-  type?: string;
-  category?: string;
-  httpMethod?: string;
-  endpoint?: string;
-  authentication?: Record<string, unknown>;
-  parameters?: string; // JSON string
-  requestConfig?: Record<string, unknown>;
-};
-
-
-
-// Props type for the HttpSteps component
-type HttpStepsComponentProps = HttpStepsProps;
-
 // Props for the CodeBlock subcomponent
 type CodeBlockProps = {
   code: string;
@@ -49,15 +34,15 @@ type CodeBlockProps = {
 
 // Props for the StepContent subcomponent
 type StepContentProps = {
-  step: ExtendedHttpStepType;
+  step: HttpStepType;
   stepIndex: number;
 };
 
-const HttpSteps = ({ workflowJson }: HttpStepsComponentProps) => {
+const HttpSteps = ({ workflowJson }: HttpStepsProps) => {
   const [copiedIndex, setCopiedIndex] = useState<string | null>(null);
   const [expandedSteps, setExpandedSteps] = useState(new Set<number>());
 
-  const httpSteps = workflowJson as ExtendedHttpStepType[];
+  const httpSteps = workflowJson;
 
   const copyToClipboard = async (text: string, index: string): Promise<void> => {
     try {
@@ -162,22 +147,11 @@ const HttpSteps = ({ workflowJson }: HttpStepsComponentProps) => {
   );
 
   const StepContent = ({ step, stepIndex }: StepContentProps): JSX.Element => {
-    const hasUrl = step.url;
-    const hasHeaders = step.headers && Object.keys(step.headers).length > 0;
-    const hasBody = step.body;
-    const hasParameters = step.parameters;
+    const hasUrl = step.copyableContent?.url;
+    const hasJsonBody = step.copyableContent?.formattedJsonBody;
+    const hasBodyParameters = step.copyableContent?.bodyParameters;
+    const hasFullConfig = step.copyableContent?.fullParameters;
     
-    // If no additional content, just show basic info
-    if (!hasUrl && !hasHeaders && !hasBody && !hasParameters) {
-      return (
-        <div className="p-6 border-t border-primary/10">
-          <div className="text-center text-muted-foreground">
-            No additional configuration details available for this HTTP request.
-          </div>
-        </div>
-      );
-    }
-
     return (
       <div className="border-t border-primary/10">
         <Tabs defaultValue="overview" className="w-full">
@@ -186,19 +160,19 @@ const HttpSteps = ({ workflowJson }: HttpStepsComponentProps) => {
               <TabsTrigger value="overview" className="flex-1">
                 Overview
               </TabsTrigger>
-              {hasHeaders && (
-                <TabsTrigger value="headers" className="flex-1">
-                  Headers
-                </TabsTrigger>
-              )}
-              {hasBody && (
+              {hasJsonBody && (
                 <TabsTrigger value="body" className="flex-1">
                   Request Body
                 </TabsTrigger>
               )}
-              {hasParameters && (
+              {hasBodyParameters && (
+                <TabsTrigger value="params" className="flex-1">
+                  Parameters
+                </TabsTrigger>
+              )}
+              {hasFullConfig && (
                 <TabsTrigger value="config" className="flex-1">
-                  Configuration
+                  Full Config
                 </TabsTrigger>
               )}
             </TabsList>
@@ -224,39 +198,69 @@ const HttpSteps = ({ workflowJson }: HttpStepsComponentProps) => {
                 {step.description && (
                   <p className="text-muted-foreground">{step.description}</p>
                 )}
+                
+                {/* Quick copy buttons for common items */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {step.copyableContent?.url && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(step.copyableContent.url, `${stepIndex}-url`)}
+                      className="justify-start"
+                    >
+                      {copiedIndex === `${stepIndex}-url` ? (
+                        <Check className="h-3 w-3 mr-2 text-green-500" />
+                      ) : (
+                        <Copy className="h-3 w-3 mr-2" />
+                      )}
+                      Copy URL
+                    </Button>
+                  )}
+                  {step.copyableContent?.method && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(step.copyableContent.method, `${stepIndex}-method`)}
+                      className="justify-start"
+                    >
+                      {copiedIndex === `${stepIndex}-method` ? (
+                        <Check className="h-3 w-3 mr-2 text-green-500" />
+                      ) : (
+                        <Copy className="h-3 w-3 mr-2" />
+                      )}
+                      Copy Method
+                    </Button>
+                  )}
+                </div>
               </div>
             </TabsContent>
 
-            {hasHeaders && (
-              <TabsContent value="headers" className="mt-0">
+            {hasJsonBody && (
+              <TabsContent value="body" className="mt-0">
                 <CodeBlock
-                  code={JSON.stringify(step.headers, null, 2)}
+                  code={step.copyableContent.formattedJsonBody || step.copyableContent.jsonBody || '{}'}
                   index={stepIndex.toString()}
-                  title="Request Headers"
+                  title="Request Body"
                   language="json"
                 />
               </TabsContent>
             )}
 
-            {hasBody && (
-              <TabsContent value="body" className="mt-0">
+            {hasBodyParameters && (
+              <TabsContent value="params" className="mt-0">
                 <CodeBlock
-                  code={
-                    typeof step.body === "string"
-                      ? step.body
-                      : JSON.stringify(step.body, null, 2)
-                  }
+                  code={step.copyableContent.bodyParameters || '{}'}
                   index={stepIndex.toString()}
-                  title="Request Body"
-                  language={typeof step.body === "string" ? "text" : "json"}
+                  title="Body Parameters"
+                  language="json"
                 />
               </TabsContent>
             )}
 
-            {hasParameters && (
+            {hasFullConfig && (
               <TabsContent value="config" className="mt-0">
                 <CodeBlock
-        code={step.parameters || '{}'}
+                  code={step.copyableContent.fullParameters || step.parameters || '{}'}
                   index={stepIndex.toString()}
                   title="Full Configuration"
                   language="json"
@@ -273,7 +277,7 @@ const HttpSteps = ({ workflowJson }: HttpStepsComponentProps) => {
     <div className="space-y-6">
       {httpSteps && httpSteps.length > 0 ? (
         <div className="space-y-4">
-          {httpSteps.map((step: ExtendedHttpStepType, index: number) => (
+          {httpSteps.map((step: HttpStepType, index: number) => (
             <Card
               key={index}
               className="border-green-200/50 dark:border-green-800/50 overflow-hidden transition-all duration-200 hover:shadow-md"
@@ -307,11 +311,9 @@ const HttpSteps = ({ workflowJson }: HttpStepsComponentProps) => {
                         >
                           {step.method?.toUpperCase() || 'UNKNOWN'}
                         </Badge>
-                        {step.category && (
-                          <Badge variant="secondary" className="text-xs">
-                            {step.category}
-                          </Badge>
-                        )}
+                        <Badge variant="secondary" className="text-xs">
+                          {step.bodyType} body
+                        </Badge>
                       </div>
                     </div>
                   </div>

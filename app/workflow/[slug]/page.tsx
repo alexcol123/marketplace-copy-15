@@ -481,6 +481,27 @@ const SingleWorkflowPage = async ({
       </section>
 
 
+
+      {/* NEW: Coding Tutorial Section */}
+      {workflow.workFlowJson && (
+        <section className="mt-14 mb-14">
+          <Separator className="my-8 opacity-50" />
+          <h2 className="text-2xl font-semibold mb-4 text-primary flex items-center gap-2">
+            <Code className="h-6 w-6" />
+            Learn to Build This Workflow
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            Dive into the actual implementation steps used in this workflow. Learn how to integrate AI, 
+            write custom code, and make API calls by examining the real components.
+          </p>
+          
+          {/* Pass the workflow JSON to the CodingStepsContainer */}
+          <CodingStepsContainer workflowJson={workflow.workFlowJson} />
+        </section>
+      )}
+
+
+
       {/* Author section with improved styling */}
       <section className="mb-12 mt-14">
         <Separator className="my-8 opacity-50" />

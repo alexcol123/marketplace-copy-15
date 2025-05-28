@@ -1,3 +1,4 @@
+// components/(custom)/(coding-steps)/AISteps.tsx
 "use client";
 
 import React, { JSX, useState } from "react";
@@ -9,40 +10,18 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Copy,
   Check,
-  Zap,
+  Bot,
   ChevronDown,
   ChevronRight,
-  Settings,
-  MessageSquare,
-  Bot,
   FileCode,
-  Brain,
   Sparkles,
+  MessageSquare,
+  Brain,
 } from "lucide-react";
 import { toast } from "sonner";
 
 // Import types from the container component
-import { LangchainStepType } from "./CodingStepsContainer";
-
-// Extended type for AI steps with additional properties that might exist
-type ExtendedLangchainStepType = LangchainStepType & {
-  type: string;
-  category?: string;
-  aiProvider?: string;
-  parameters: string; // JSON string
-  copyableContent?: {
-    prompt?: string | Record<string, unknown>;
-    systemMessage?: string;
-    modelConfig?: Record<string, unknown>;
-  };
-};
-
-type ExtendedLangchainSteps = ExtendedLangchainStepType[];
-
-// Props type for the AISteps component
-type AIStepsComponentProps = {
-  workflowJson: ExtendedLangchainSteps;
-};
+import { AIStepsProps, AIStepType } from "./CodingStepsContainer";
 
 // Props for the CodeBlock subcomponent
 type CodeBlockProps = {
@@ -54,20 +33,17 @@ type CodeBlockProps = {
 
 // Props for the StepContent subcomponent
 type StepContentProps = {
-  step: ExtendedLangchainStepType;
+  step: AIStepType;
   stepIndex: number;
 };
 
-const AISteps = ({ workflowJson }: AIStepsComponentProps) => {
+const AISteps = ({ workflowJson }: AIStepsProps) => {
   const [copiedIndex, setCopiedIndex] = useState<string | null>(null);
   const [expandedSteps, setExpandedSteps] = useState(new Set<number>());
 
-  const aiSteps: ExtendedLangchainSteps = workflowJson;
+  const aiSteps = workflowJson;
 
-  const copyToClipboard = async (
-    text: string,
-    index: string
-  ): Promise<void> => {
+  const copyToClipboard = async (text: string, index: string): Promise<void> => {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedIndex(index);
@@ -89,48 +65,43 @@ const AISteps = ({ workflowJson }: AIStepsComponentProps) => {
     setExpandedSteps(newExpanded);
   };
 
-  const getNodeTypeIcon = (type: string): JSX.Element => {
-    if (type.includes("lmChatOpenAi") || type.includes("chat"))
-      return <Bot className="text-blue-500" size={20} />;
-    if (type.includes("agent"))
-      return <Brain className="text-purple-500" size={20} />;
-    if (type.includes("openAi") || type.includes("ai"))
-      return <Sparkles className="text-green-500" size={20} />;
-    if (type.includes("anthropic") || type.includes("claude"))
-      return <MessageSquare className="text-orange-500" size={20} />;
-    if (type.includes("gemini") || type.includes("google"))
-      return <Zap className="text-red-500" size={20} />;
-    return <Settings className="text-muted-foreground" size={20} />;
+  const getProviderColor = (provider: string | undefined): string => {
+    if (!provider) return 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-950/20 border-gray-200 dark:border-gray-800';
+    
+    switch (provider.toLowerCase()) {
+      case 'openai':
+        return 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800';
+      case 'anthropic':
+        return 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800';
+      case 'google':
+        return 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800';
+      default:
+        return 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800';
+    }
   };
 
-  const getNodeTypeBadgeColor = (type: string): string => {
-    if (type.includes("lmChatOpenAi") || type.includes("chat"))
-      return "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300";
-    if (type.includes("agent"))
-      return "bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300";
-    if (type.includes("openAi") || type.includes("ai"))
-      return "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300";
-    if (type.includes("anthropic") || type.includes("claude"))
-      return "bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300";
-    if (type.includes("gemini") || type.includes("google"))
-      return "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300";
-    return "bg-muted/50 border-muted text-muted-foreground";
+  const getCategoryIcon = (category: string | undefined): JSX.Element => {
+    if (!category) return <Bot className="h-4 w-4" />;
+    
+    switch (category.toLowerCase()) {
+      case 'chat ai model':
+        return <MessageSquare className="h-4 w-4" />;
+      case 'ai text generation':
+        return <FileCode className="h-4 w-4" />;
+      case 'ai agent':
+        return <Brain className="h-4 w-4" />;
+      case 'ai assistant':
+        return <Sparkles className="h-4 w-4" />;
+      default:
+        return <Bot className="h-4 w-4" />;
+    }
   };
 
-  const getAIProviderName = (type: string): string => {
-    if (type.includes("openAi")) return "OpenAI";
-    if (type.includes("anthropic") || type.includes("claude"))
-      return "Anthropic";
-    if (type.includes("gemini") || type.includes("google")) return "Google";
-    if (type.includes("langchain")) return "AI Model";
-    return "AI Provider";
-  };
-
-  const CodeBlock = ({
-    code,
-    index,
-    title,
-    language = "json",
+  const CodeBlock = ({ 
+    code, 
+    index, 
+    title, 
+    language = "json" 
   }: CodeBlockProps): JSX.Element => (
     <div className="relative border border-primary/10 rounded-lg overflow-hidden">
       <div className="flex items-center justify-between bg-muted/30 px-4 py-3 border-b border-primary/10">
@@ -169,96 +140,203 @@ const AISteps = ({ workflowJson }: AIStepsComponentProps) => {
   );
 
   const StepContent = ({ step, stepIndex }: StepContentProps): JSX.Element => {
+    const hasModelConfig = step.copyableContent?.modelConfig;
     const hasPrompt = step.copyableContent?.prompt;
     const hasSystemMessage = step.copyableContent?.systemMessage;
-    const hasModelConfig = step.copyableContent?.modelConfig;
+    const hasFullConfig = step.parameters;
+    
+    // Generate example implementation code
+    const generateImplementationCode = (step: AIStepType): string => {
+      if (step.aiProvider === 'OpenAI') {
+        return `// OpenAI ${step.category} Implementation
+import OpenAI from 'openai';
 
-    // If no additional content, just show parameters
-    if (!hasPrompt && !hasSystemMessage && !hasModelConfig) {
-      return (
-        <div className="p-6 border-t border-primary/10">
-          <CodeBlock
-            code={step.parameters}
-            index={stepIndex.toString()}
-            title="Full Parameters"
-            language="json"
-          />
-        </div>
-      );
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const response = await openai.chat.completions.create({
+  model: "${step.copyableContent?.modelConfig || 'gpt-4'}",
+  messages: [${step.copyableContent?.systemMessage ? `
+    {
+      role: "system",
+      content: "${step.copyableContent.systemMessage}"
+    },` : ''}
+    {
+      role: "user",
+      content: "${step.copyableContent?.prompt || 'Your prompt here'}"
     }
+  ],
+  temperature: 0.7,
+  max_tokens: 1000
+});
 
+console.log(response.choices[0].message.content);`;
+      } else if (step.aiProvider === 'Anthropic') {
+        return `// Anthropic Claude Implementation
+import Anthropic from '@anthropic-ai/sdk';
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
+
+const response = await anthropic.messages.create({
+  model: "${step.copyableContent?.modelConfig || 'claude-3-sonnet-20240229'}",
+  max_tokens: 1000,
+  messages: [
+    {
+      role: "user",
+      content: "${step.copyableContent?.prompt || 'Your prompt here'}"
+    }
+  ]
+});
+
+console.log(response.content[0].text);`;
+      } else {
+        return `// ${step.aiProvider} AI Integration
+// Configure your ${step.aiProvider} client
+const response = await aiClient.generate({
+  model: "${step.copyableContent?.modelConfig || 'default-model'}",
+  prompt: "${step.copyableContent?.prompt || 'Your prompt here'}",
+  // Add your specific configuration here
+});
+
+console.log(response);`;
+      }
+    };
+    
     return (
       <div className="border-t border-primary/10">
-        <Tabs defaultValue="parameters" className="w-full">
+        <Tabs defaultValue="overview" className="w-full">
           <div className="px-6 pt-4">
             <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1">
-              <TabsTrigger value="parameters" className="flex-1">
-                Parameters
+              <TabsTrigger value="overview" className="flex-1">
+                Overview
               </TabsTrigger>
-              {hasPrompt && (
-                <TabsTrigger value="prompt" className="flex-1">
-                  Prompt Template
+              <TabsTrigger value="implementation" className="flex-1">
+                Implementation
+              </TabsTrigger>
+              {(hasPrompt || hasSystemMessage) && (
+                <TabsTrigger value="prompts" className="flex-1">
+                  Prompts
                 </TabsTrigger>
               )}
-              {hasSystemMessage && (
-                <TabsTrigger value="system" className="flex-1">
-                  System Message
-                </TabsTrigger>
-              )}
-              {hasModelConfig && (
-                <TabsTrigger value="model" className="flex-1">
-                  Model Config
+              {hasFullConfig && (
+                <TabsTrigger value="config" className="flex-1">
+                  Full Config
                 </TabsTrigger>
               )}
             </TabsList>
           </div>
 
           <div className="p-6">
-            <TabsContent value="parameters" className="mt-0">
+            <TabsContent value="overview" className="mt-0">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <Badge 
+                    variant="outline" 
+                    className={`font-mono ${getProviderColor(step.aiProvider)} px-3 py-1`}
+                  >
+                    {getCategoryIcon(step.category)}
+                    <span className="ml-2">{step.aiProvider}</span>
+                  </Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    {step.category}
+                  </Badge>
+                  {step.copyableContent?.modelConfig && (
+                    <code className="bg-muted px-2 py-1 rounded text-sm">
+                      {step.copyableContent.modelConfig}
+                    </code>
+                  )}
+                </div>
+                
+                <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-2">
+                    💡 What this AI step does:
+                  </h4>
+                  <p className="text-sm text-blue-700 dark:text-blue-400">
+                    {step.category === 'Chat AI Model' && 'Provides interactive conversation capabilities with context awareness and natural language understanding.'}
+                    {step.category === 'AI Text Generation' && 'Generates structured text content based on prompts and can output in specific formats like JSON.'}
+                    {step.category === 'AI Agent' && 'Acts as an autonomous agent that can reason, plan, and execute tasks with decision-making capabilities.'}
+                    {step.category === 'AI Assistant' && 'Provides helpful assistance for various tasks with advanced reasoning and problem-solving abilities.'}
+                    {!['Chat AI Model', 'AI Text Generation', 'AI Agent', 'AI Assistant'].includes(step.category) && 'Integrates AI capabilities to enhance the workflow with intelligent processing and decision making.'}
+                  </p>
+                </div>
+                
+                {/* Quick copy buttons for common items */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {step.copyableContent?.modelConfig && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(step.copyableContent.modelConfig!, `${stepIndex}-model`)}
+                      className="justify-start"
+                    >
+                      {copiedIndex === `${stepIndex}-model` ? (
+                        <Check className="h-3 w-3 mr-2 text-green-500" />
+                      ) : (
+                        <Copy className="h-3 w-3 mr-2" />
+                      )}
+                      Copy Model Config
+                    </Button>
+                  )}
+                  {step.copyableContent?.prompt && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(step.copyableContent.prompt!, `${stepIndex}-prompt`)}
+                      className="justify-start"
+                    >
+                      {copiedIndex === `${stepIndex}-prompt` ? (
+                        <Check className="h-3 w-3 mr-2 text-green-500" />
+                      ) : (
+                        <Copy className="h-3 w-3 mr-2" />
+                      )}
+                      Copy Prompt
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="implementation" className="mt-0">
               <CodeBlock
-                code={step.parameters}
+                code={generateImplementationCode(step)}
                 index={stepIndex.toString()}
-                title="Full Parameters"
-                language="json"
+                title={`${step.aiProvider} Implementation`}
+                language="javascript"
               />
             </TabsContent>
 
-            {hasPrompt && (
-              <TabsContent value="prompt" className="mt-0">
-                <CodeBlock
-                  code={
-                    typeof step.copyableContent!.prompt === "string"
-                      ? step.copyableContent!.prompt
-                      : JSON.stringify(step.copyableContent!.prompt, null, 2)
-                  }
-                  index={stepIndex.toString()}
-                  title="Prompt Template"
-                  language="text"
-                />
-              </TabsContent>
-            )}
-
-            {hasSystemMessage && (
-              <TabsContent value="system" className="mt-0">
-                <CodeBlock
-                  code={step.copyableContent!.systemMessage!}
-                  index={stepIndex.toString()}
-                  title="System Message"
-                  language="text"
-                />
-              </TabsContent>
-            )}
-
-            {hasModelConfig && (
-              <TabsContent value="model" className="mt-0">
-                <CodeBlock
-                  code={JSON.stringify(
-                    step.copyableContent!.modelConfig,
-                    null,
-                    2
+            {(hasPrompt || hasSystemMessage) && (
+              <TabsContent value="prompts" className="mt-0">
+                <div className="space-y-4">
+                  {hasSystemMessage && (
+                    <CodeBlock
+                      code={step.copyableContent.systemMessage || ''}
+                      index={stepIndex.toString()}
+                      title="System Message"
+                      language="text"
+                    />
                   )}
+                  {hasPrompt && (
+                    <CodeBlock
+                      code={step.copyableContent.prompt || ''}
+                      index={stepIndex.toString()}
+                      title="User Prompt"
+                      language="text"
+                    />
+                  )}
+                </div>
+              </TabsContent>
+            )}
+
+            {hasFullConfig && (
+              <TabsContent value="config" className="mt-0">
+                <CodeBlock
+                  code={step.parameters || '{}'}
                   index={stepIndex.toString()}
-                  title="Model Configuration"
+                  title="Full Configuration"
                   language="json"
                 />
               </TabsContent>
@@ -273,13 +351,13 @@ const AISteps = ({ workflowJson }: AIStepsComponentProps) => {
     <div className="space-y-6">
       {aiSteps && aiSteps.length > 0 ? (
         <div className="space-y-4">
-          {aiSteps.map((step: ExtendedLangchainStepType, index: number) => (
+          {aiSteps.map((step: AIStepType, index: number) => (
             <Card
               key={index}
-              className="border-purple-200/50 dark:border-purple-800/50 overflow-hidden transition-all duration-200 hover:shadow-md"
+              className="border-primary/20 overflow-hidden transition-all duration-200 hover:shadow-md"
             >
               <CardHeader
-                className="cursor-pointer hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-colors p-4"
+                className="cursor-pointer hover:bg-primary/5 transition-colors p-4"
                 onClick={() => toggleExpanded(index)}
               >
                 <div className="flex items-center justify-between">
@@ -295,23 +373,21 @@ const AISteps = ({ workflowJson }: AIStepsComponentProps) => {
                         <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       )}
                     </Button>
-                    {getNodeTypeIcon(step.type)}
+                    <Bot className="h-5 w-5 text-primary" />
                     <div className="flex-grow">
                       <CardTitle className="text-base font-semibold flex items-center gap-2">
                         {step.title}
                       </CardTitle>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <Badge
-                          variant="outline"
-                          className={getNodeTypeBadgeColor(step.type)}
+                        <Badge 
+                          variant="outline" 
+                          className={`font-mono text-xs ${getProviderColor(step.aiProvider)}`}
                         >
-                          {step.category || getAIProviderName(step.type)}
+                          {step.aiProvider}
                         </Badge>
-                        {step.aiProvider && (
-                          <Badge variant="secondary" className="text-xs">
-                            {step.aiProvider}
-                          </Badge>
-                        )}
+                        <Badge variant="secondary" className="text-xs">
+                          {step.category}
+                        </Badge>
                       </div>
                     </div>
                   </div>
@@ -330,15 +406,14 @@ const AISteps = ({ workflowJson }: AIStepsComponentProps) => {
       ) : (
         <Card className="border-primary/20">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-full mb-4">
-              <Brain className="h-8 w-8 text-purple-500" />
+            <div className="p-4 bg-primary/10 rounded-full mb-4">
+              <Bot className="h-8 w-8 text-primary" />
             </div>
             <h3 className="text-lg font-medium text-foreground mb-2">
               No AI Steps Found
             </h3>
             <p className="text-muted-foreground max-w-md">
-              This workflow doesn&apos;t contain any AI models or language
-              processing nodes.
+              This workflow doesn&apos;t contain any AI integration steps to learn from.
             </p>
           </CardContent>
         </Card>
