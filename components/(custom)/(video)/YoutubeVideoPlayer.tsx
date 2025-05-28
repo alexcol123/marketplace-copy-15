@@ -92,7 +92,7 @@ const YouTubeVideoPlayer = ({ videoUrl, title }: YouTubeVideoPlayerProps) => {
     <section className="my-10">
       <h2 className="text-2xl font-semibold mb-6 text-primary flex items-center gap-2">
         <FaYoutube className="h-6 w-6 text-red-600 dark:text-red-500" />
-        Workflow Demonstration
+        Workflow Demonstration Video
       </h2>
       
       <div 

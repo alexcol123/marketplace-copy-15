@@ -35,6 +35,8 @@ import { ReturnToWorkflowsBtn } from "@/components/(custom)/(dashboard)/Form/But
 import { Workflow, Profile } from "@prisma/client";
 import EmptyList from "@/components/(custom)/EmptyList";
 import YouTubeVideoPlayer from "@/components/(custom)/(video)/YoutubeVideoPlayer";
+
+import CodingStepsContainer from "@/components/(custom)/(coding-steps)/CodingStepsContainer";
 // Import the YouTube player component
 
 
@@ -431,6 +433,10 @@ const SingleWorkflowPage = async ({
           </div>
         </section>
       )}
+
+
+      <h2>Steps</h2>
+      <CodingStepsContainer  workflowJson={ workflow.workFlowJson}/>
 
       {/* Author section with improved styling */}
       <section className="mb-12 mt-14">
