@@ -19,6 +19,8 @@ import {
   AlertTriangle,
   Terminal,
   BookOpen,
+  Braces,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -80,13 +82,13 @@ const CodingSteps = ({ workflowJson }: CodingStepsProps) => {
 
   // Extract functions from code for analysis
   const extractFunctions = (jsCode: string): string[] => {
-    const functionRegex = /function\s+(\w+)|const\s+(\w+)\s*=|let\s+(\w+)\s*=|var\s+(\w+)\s*=/g;
+    const functionRegex = /(?:function\s+(\w+))|(?:(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:function|\([^)]*\)\s*=>))|(?:(\w+)\s*:\s*(?:async\s+)?function)|(?:(\w+)\s*:\s*(?:async\s+)?\([^)]*\)\s*=>)/g;
     const functions: string[] = [];
     let match;
     
     while ((match = functionRegex.exec(jsCode)) !== null) {
       const funcName = match[1] || match[2] || match[3] || match[4];
-      if (funcName && !functions.includes(funcName)) {
+      if (funcName && !functions.includes(funcName) && funcName !== 'items') {
         functions.push(funcName);
       }
     }
@@ -102,21 +104,25 @@ const CodingSteps = ({ workflowJson }: CodingStepsProps) => {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       if (line.startsWith('//')) {
-        commentBlocks.push(line.replace('//', '').trim());
+        const comment = line.replace('//', '').trim();
+        if (comment && !comment.toLowerCase().includes('todo') && !comment.toLowerCase().includes('fixme')) {
+          commentBlocks.push(comment);
+        }
       } else if (line.startsWith('/*')) {
         let blockComment = line.replace('/*', '').trim();
-        while (i < lines.length && !line.includes('*/')) {
+        while (i < lines.length && !lines[i].includes('*/')) {
           i++;
           if (i < lines.length) {
-            blockComment += ' ' + lines[i].replace('*/', '').replace('*', '').trim();
+            const nextLine = lines[i].replace('*/', '').replace(/^\s*\*/, '').trim();
+            if (nextLine) blockComment += ' ' + nextLine;
           }
         }
-        commentBlocks.push(blockComment);
+        if (blockComment) commentBlocks.push(blockComment);
       }
     }
     
     return commentBlocks.length > 0 
-      ? commentBlocks.join(' ') 
+      ? commentBlocks.join(' ').substring(0, 200) + (commentBlocks.join(' ').length > 200 ? '...' : '')
       : 'Custom JavaScript logic implementation';
   };
 
@@ -126,6 +132,9 @@ const CodingSteps = ({ workflowJson }: CodingStepsProps) => {
     const hasReturn = jsCode.includes('return');
     const hasItems = jsCode.includes('$input.all()') || jsCode.includes('items');
     const hasAsync = jsCode.includes('async') || jsCode.includes('await');
+    const hasJson = jsCode.includes('JSON.');
+    const hasConsole = jsCode.includes('console.');
+    const hasError = jsCode.includes('try') && jsCode.includes('catch');
     
     let explanation = "This JavaScript code node performs the following operations:\n\n";
     
@@ -139,6 +148,18 @@ const CodingSteps = ({ workflowJson }: CodingStepsProps) => {
     
     if (hasAsync) {
       explanation += "• Handles asynchronous operations (API calls, database queries, etc.)\n";
+    }
+    
+    if (hasJson) {
+      explanation += "• Performs JSON parsing or stringification operations\n";
+    }
+    
+    if (hasError) {
+      explanation += "• Includes error handling with try-catch blocks\n";
+    }
+    
+    if (hasConsole) {
+      explanation += "• Includes debugging output via console logging\n";
     }
     
     if (hasReturn) {
@@ -155,22 +176,32 @@ const CodingSteps = ({ workflowJson }: CodingStepsProps) => {
     const lines = jsCode.split('\n').filter(line => line.trim().length > 0).length;
     const functions = extractFunctions(jsCode);
     const hasAsync = jsCode.includes('async') || jsCode.includes('await');
-    const hasLoops = /for\s*\(|while\s*\(|forEach/.test(jsCode);
-    const hasConditions = /if\s*\(|switch\s*\(/.test(jsCode);
-    const hasRegex = /\/.*\/[gimuy]*/.test(jsCode);
+    const hasLoops = /for\s*\(|while\s*\(|forEach|for\s+of|for\s+in/.test(jsCode);
+    const hasConditions = /if\s*\(|switch\s*\(|\?\s*:/.test(jsCode);
+    const hasRegex = /\/[^/\n]+\/[gimuy]*/.test(jsCode);
+    const hasErrorHandling = jsCode.includes('try') && jsCode.includes('catch');
+    const hasComplexData = /Object\.|Array\.|Map\.|Set\./.test(jsCode);
     
     let complexity = 0;
     const reasons: string[] = [];
     
-    if (lines > 50) { complexity += 2; reasons.push(`${lines} lines of code`); }
-    if (functions.length > 3) { complexity += 2; reasons.push(`${functions.length} functions`); }
+    if (lines > 100) { complexity += 3; reasons.push(`${lines} lines of code`); }
+    else if (lines > 50) { complexity += 2; reasons.push(`${lines} lines of code`); }
+    else if (lines > 20) { complexity += 1; reasons.push(`${lines} lines of code`); }
+    
+    if (functions.length > 5) { complexity += 3; reasons.push(`${functions.length} functions`); }
+    else if (functions.length > 2) { complexity += 2; reasons.push(`${functions.length} functions`); }
+    else if (functions.length > 0) { complexity += 1; reasons.push(`${functions.length} function${functions.length > 1 ? 's' : ''}`); }
+    
     if (hasAsync) { complexity += 1; reasons.push('Async operations'); }
-    if (hasLoops) { complexity += 1; reasons.push('Loops present'); }
+    if (hasLoops) { complexity += 1; reasons.push('Loops and iterations'); }
     if (hasConditions) { complexity += 1; reasons.push('Conditional logic'); }
     if (hasRegex) { complexity += 1; reasons.push('Regular expressions'); }
+    if (hasErrorHandling) { complexity += 1; reasons.push('Error handling'); }
+    if (hasComplexData) { complexity += 1; reasons.push('Complex data operations'); }
     
-    if (complexity <= 2) return { level: 'Simple', color: 'green', reasons };
-    if (complexity <= 5) return { level: 'Moderate', color: 'yellow', reasons };
+    if (complexity <= 3) return { level: 'Simple', color: 'green', reasons };
+    if (complexity <= 7) return { level: 'Moderate', color: 'yellow', reasons };
     return { level: 'Complex', color: 'red', reasons };
   };
 
@@ -224,23 +255,78 @@ const CodingSteps = ({ workflowJson }: CodingStepsProps) => {
     
     // Generate a Node.js/standalone version of the code
     const generateStandaloneVersion = (jsCode: string): string => {
-      return `// Standalone Node.js version
+      let standaloneCode = `// Standalone Node.js version
 // You can run this independently or integrate it into your own applications
 
-${jsCode.includes('$input.all()') 
-  ? '// Replace $input.all() with your actual data source\nconst inputData = []; // Your input data here\n\n' 
-  : ''
-}${jsCode.replace(/\$input\.all\(\)/g, 'inputData')}
+`;
 
-// Export for use in other modules
+      // Add input data handling
+      if (jsCode.includes('$input.all()')) {
+        standaloneCode += `// Replace $input.all() with your actual data source
+const inputData = []; // Your input data here
+
+`;
+      }
+
+      // Replace n8n-specific syntax
+      let processedCode = jsCode
+        .replace(/\$input\.all\(\)/g, 'inputData')
+        .replace(/\$input\.first\(\)/g, 'inputData[0]')
+        .replace(/\$node\[.*?\]/g, 'previousNodeData')
+        .replace(/\$json/g, 'item');
+
+      standaloneCode += processedCode;
+
+      // Add export statement
+      if (functions.length > 0) {
+        standaloneCode += `\n\n// Export for use in other modules
 module.exports = { ${functions.join(', ')} };`;
+      }
+
+      return standaloneCode;
+    };
+
+    // Generate package.json for the standalone version
+    const generatePackageJson = (): string => {
+      const dependencies: string[] = [];
+      
+      // Check for common dependencies
+      if (step.jsCode.includes('axios') || step.jsCode.includes('fetch')) {
+        dependencies.push('"axios": "^1.6.0"');
+      }
+      if (step.jsCode.includes('lodash') || step.jsCode.includes('_')) {
+        dependencies.push('"lodash": "^4.17.21"');
+      }
+      if (step.jsCode.includes('moment')) {
+        dependencies.push('"moment": "^2.29.4"');
+      }
+      if (step.jsCode.includes('crypto')) {
+        dependencies.push('"crypto-js": "^4.1.1"');
+      }
+
+      return `{
+  "name": "n8n-extracted-code",
+  "version": "1.0.0",
+  "description": "Extracted JavaScript code from n8n workflow",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \\"Error: no test specified\\" && exit 1"
+  },
+  "dependencies": {
+    ${dependencies.join(',\n    ')}
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}`;
     };
     
     return (
       <div className="border-t border-primary/10">
         <Tabs defaultValue="overview" className="w-full">
           <div className="px-6 pt-4">
-            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1">
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-1">
               <TabsTrigger value="overview" className="flex-1">
                 Overview
               </TabsTrigger>
@@ -249,6 +335,9 @@ module.exports = { ${functions.join(', ')} };`;
               </TabsTrigger>
               <TabsTrigger value="standalone" className="flex-1">
                 Standalone
+              </TabsTrigger>
+              <TabsTrigger value="package" className="flex-1">
+                Package.json
               </TabsTrigger>
               <TabsTrigger value="explanation" className="flex-1">
                 How it Works
@@ -260,7 +349,7 @@ module.exports = { ${functions.join(', ')} };`;
             <TabsContent value="overview" className="mt-0">
               <div className="space-y-4">
                 <div className="flex items-center gap-3 flex-wrap">
-                  <Badge variant="outline" className="font-mono text-xs bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800 text-green-600 dark:text-green-400 px-3 py-1">
+                  <Badge variant="outline" className="font-mono text-xs bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 px-3 py-1">
                     <Play className="h-3 w-3 mr-2" />
                     JavaScript
                   </Badge>
@@ -270,24 +359,25 @@ module.exports = { ${functions.join(', ')} };`;
                   <Badge 
                     variant="outline" 
                     className={`text-xs ${
-                      complexity.color === 'green' ? 'border-green-500 text-green-600' :
-                      complexity.color === 'yellow' ? 'border-yellow-500 text-yellow-600' :
-                      'border-red-500 text-red-600'
+                      complexity.color === 'green' ? 'border-green-500 text-green-600 bg-green-50 dark:bg-green-950/20' :
+                      complexity.color === 'yellow' ? 'border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-950/20' :
+                      'border-red-500 text-red-600 bg-red-50 dark:bg-red-950/20'
                     }`}
                   >
+                    <Zap className="h-3 w-3 mr-1" />
                     {complexity.level}
                   </Badge>
                   <code className="bg-muted px-2 py-1 rounded text-sm">
-                    {step.jsCode.split('\n').length} lines
+                    {step.jsCode.split('\n').filter(line => line.trim().length > 0).length} lines
                   </code>
                 </div>
                 
-                <div className="bg-green-50 dark:bg-green-950/30 p-4 rounded-lg border border-green-200 dark:border-green-800">
-                  <h4 className="font-medium text-green-800 dark:text-green-300 mb-2 flex items-center gap-2">
+                <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-2">
                     <Lightbulb className="h-4 w-4" />
                     Code Purpose:
                   </h4>
-                  <p className="text-sm text-green-700 dark:text-green-400">
+                  <p className="text-sm text-blue-700 dark:text-blue-400">
                     {step.description !== 'Custom JavaScript logic' 
                       ? step.description 
                       : logicDescription
@@ -296,13 +386,14 @@ module.exports = { ${functions.join(', ')} };`;
                 </div>
                 
                 {functions.length > 0 && (
-                  <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-2">
-                      🔧 Functions Defined:
+                  <div className="bg-green-50 dark:bg-green-950/30 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                    <h4 className="font-medium text-green-800 dark:text-green-300 mb-2 flex items-center gap-2">
+                      <Braces className="h-4 w-4" />
+                      Functions Defined:
                     </h4>
                     <div className="flex flex-wrap gap-2">
                       {functions.map((func, idx) => (
-                        <code key={idx} className="bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded text-sm text-blue-800 dark:text-blue-300">
+                        <code key={idx} className="bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded text-sm text-green-800 dark:text-green-300">
                           {func}()
                         </code>
                       ))}
@@ -347,7 +438,7 @@ module.exports = { ${functions.join(', ')} };`;
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => copyToClipboard(step.copyableContent, `${stepIndex}-full-code`)}
+                    onClick={() => copyToClipboard(step.copyableContent || step.jsCode, `${stepIndex}-full-code`)}
                     className="justify-start"
                   >
                     {copiedIndex === `${stepIndex}-full-code` ? (
@@ -388,9 +479,18 @@ module.exports = { ${functions.join(', ')} };`;
             <TabsContent value="standalone" className="mt-0">
               <CodeBlock
                 code={generateStandaloneVersion(step.jsCode)}
-                index={stepIndex.toString()}
+                index={`${stepIndex}-standalone`}
                 title="Standalone Node.js Version"
                 language="javascript"
+              />
+            </TabsContent>
+
+            <TabsContent value="package" className="mt-0">
+              <CodeBlock
+                code={generatePackageJson()}
+                index={`${stepIndex}-package`}
+                title="Package.json Configuration"
+                language="json"
               />
             </TabsContent>
 
@@ -416,6 +516,7 @@ module.exports = { ${functions.join(', ')} };`;
                     <li>• Input data is accessed via <code className="bg-muted px-1 rounded">$input.all()</code></li>
                     <li>• Return value becomes output for next workflow step</li>
                     <li>• All standard JavaScript and Node.js APIs are available</li>
+                    <li>• Error handling should be implemented for production use</li>
                   </ul>
                 </div>
 
@@ -429,6 +530,7 @@ module.exports = { ${functions.join(', ')} };`;
                     <li>• Add console.log() statements for debugging</li>
                     <li>• Handle errors gracefully with try-catch blocks</li>
                     <li>• Document complex logic with comments</li>
+                    <li>• Consider performance implications for large datasets</li>
                   </ul>
                 </div>
               </div>
@@ -442,11 +544,13 @@ module.exports = { ${functions.join(', ')} };`;
   if (!codeSteps || codeSteps.length === 0) {
     return (
       <Card className="w-full">
-        <CardContent className="p-6 text-center">
-          <div className="flex flex-col items-center gap-3">
-            <Code className="h-12 w-12 text-muted-foreground" />
+        <CardContent className="p-12 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-full">
+              <Code className="h-8 w-8 text-blue-500" />
+            </div>
             <h3 className="text-lg font-medium">No JavaScript Code Found</h3>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground max-w-md">
               This workflow doesn't contain any JavaScript code nodes to display.
             </p>
           </div>
@@ -457,47 +561,71 @@ module.exports = { ${functions.join(', ')} };`;
 
   return (
     <div className="space-y-6">
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold mb-2 flex items-center justify-center gap-2">
-          <Code className="h-6 w-6 text-primary" />
-          JavaScript Code Analysis
-        </h2>
-        <p className="text-muted-foreground">
-          Detailed breakdown of the JavaScript code used in this workflow
-        </p>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+          <Code className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        </div>
+        <h3 className="text-lg font-semibold">
+          JavaScript Code Steps
+        </h3>
+        <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
+          {codeSteps.length} code block{codeSteps.length !== 1 ? 's' : ''}
+        </Badge>
       </div>
 
       {codeSteps.map((step, index) => {
         const isExpanded = expandedSteps.has(index);
+        const complexity = analyzeCodeComplexity(step.jsCode);
         
         return (
-          <Card key={index} className="w-full overflow-hidden">
+          <Card key={index} className="w-full overflow-hidden border-blue-200/50 dark:border-blue-800/50 transition-all duration-200 hover:shadow-md">
             <CardHeader 
-              className="cursor-pointer hover:bg-muted/50 transition-colors"
+              className="cursor-pointer hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors p-4"
               onClick={() => toggleExpanded(index)}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-sm font-bold text-primary">{index + 1}</span>
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">{step.title}</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
+                <div className="flex items-center gap-3 flex-grow min-w-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 p-0 hover:bg-transparent flex-shrink-0"
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                  <Code className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-base font-semibold mb-1">
+                      <span className="truncate" title={step.title}>
+                        {step.title}
+                      </span>
+                    </CardTitle>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className="font-mono text-xs bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 flex-shrink-0">
+                        {step.nodeType || 'JavaScript'}
+                      </Badge>
+                      <Badge 
+                        variant="outline" 
+                        className={`text-xs flex-shrink-0 ${
+                          complexity.color === 'green' ? 'border-green-500 text-green-600 bg-green-50 dark:bg-green-950/20' :
+                          complexity.color === 'yellow' ? 'border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-950/20' :
+                          'border-red-500 text-red-600 bg-red-50 dark:bg-red-950/20'
+                        }`}
+                      >
+                        {complexity.level}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1 truncate" title={step.description}>
                       {step.description}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="font-mono text-xs">
-                    {step.nodeType || 'JavaScript'}
-                  </Badge>
-                  {isExpanded ? (
-                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                  )}
-                </div>
+                <Badge variant="secondary" className="ml-4 flex-shrink-0">
+                  Step {index + 1}
+                </Badge>
               </div>
             </CardHeader>
             
@@ -512,3 +640,5 @@ module.exports = { ${functions.join(', ')} };`;
 };
 
 export default CodingSteps;
+
+
