@@ -1,51 +1,44 @@
 'use client';
-import React, { useState } from 'react';
+import React, { JSX, useState } from 'react';
 import { Copy, Check, Code, Zap, ChevronDown, ChevronRight } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
-// Mock data based on your paste.txt content
-const mockCodeSteps = [
-  {
-    "title": "Code: Pick voice (Code Logic)",
-    "description": "Set appropriate voice ID Return everything plus the selected voice ID",
-    "jsCode": "const gender =   $('Form:CartoonVideo').first().json.Gender\n  \n\n\n// Set appropriate voice ID\nlet voiceId;\nif (gender === 'Male') {\n  voiceId = 'goT3UYdM9bhm0n2lmKQx'; // Replace with your actual male voice ID\n} else {\n  voiceId = 'ZF6FPAbjXT4488VcRRnw'; // Replace with your actual female voice ID\n}\n\n// Return everything plus the selected voice ID\nreturn {\n  ...JSON.parse(JSON.stringify($input.item.json)),\n  voiceId: voiceId\n};",
-    "copyableContent": "const gender =   $('Form:CartoonVideo').first().json.Gender\n  \n\n\n// Set appropriate voice ID\nlet voiceId;\nif (gender === 'Male') {\n  voiceId = 'goT3UYdM9bhm0n2lmKQx'; // Replace with your actual male voice ID\n} else {\n  voiceId = 'ZF6FPAbjXT4488VcRRnw'; // Replace with your actual female voice ID\n}\n\n// Return everything plus the selected voice ID\nreturn {\n  ...JSON.parse(JSON.stringify($input.item.json)),\n  voiceId: voiceId\n};"
-  },
-  {
-    "title": "Code:image (Code Logic)",
-    "description": "Custom JavaScript logic",
-    "jsCode": "const binaryItem = items.find(i => i.binary && Object.keys(i.binary).length > 0);\nconst metadataItem = items.find(i => i.json && i.json.id && i.json.type);\n\nconsole.log(items)\n\nreturn [\n  {\n    json: {\n      id: metadataItem.json.id,\n      type: metadataItem.json.type,\n      name: metadataItem.json.name || 'uploaded-asset'\n    },\n    binary: {\n      data: binaryItem.binary.data\n    }\n  }\n];",
-    "copyableContent": "const binaryItem = items.find(i => i.binary && Object.keys(i.binary).length > 0);\nconst metadataItem = items.find(i => i.json && i.json.id && i.json.type);\n\nconsole.log(items)\n\nreturn [\n  {\n    json: {\n      id: metadataItem.json.id,\n      type: metadataItem.json.type,\n      name: metadataItem.json.name || 'uploaded-asset'\n    },\n    binary: {\n      data: binaryItem.binary.data\n    }\n  }\n];"
-  }
-];
+// Import types from the container component
+import { CodingStepsProps, CodeStepType, CodeSteps } from "./CodingStepsContainer";
 
-const CodingSteps = ({ workflowJson }) => {
-  const [copiedIndex, setCopiedIndex] = useState(null);
-  const [expandedSteps, setExpandedSteps] = useState(new Set());
+// Props type for the CodeBlock subcomponent
+type CodeBlockProps = {
+  code: string;
+  index: string | number;
+  title: string;
+};
 
-  // Use mock data for demo, replace with actual workflow processing
-  let codeSteps = mockCodeSteps;
-  let langchainSteps = [];
-  
-  // Uncomment when your processWorkflowForWebsite function is working
-  // try {
-  //   const workflowData = processWorkflowForWebsite(workflowJson);
-  //   codeSteps = workflowData.data.codeSteps;
-  //   langchainSteps = workflowData.data.langchainSteps;
-  // } catch (error) {
-  //   console.error('Error processing workflow:', error);
-  // }
+// Union type for expanded step keys (can be number or string)
+type ExpandedStepKey = number | string;
 
-  const copyToClipboard = async (text, index) => {
+const CodingSteps = ({ workflowJson }: CodingStepsProps) => {
+  const [copiedIndex, setCopiedIndex] = useState<string | number | null>(null);
+  const [expandedSteps, setExpandedSteps] = useState(new Set<ExpandedStepKey>());
+
+  // Use the actual workflow data - now properly typed
+  const codeSteps: CodeSteps = workflowJson || [];
+  const langchainSteps: CodeSteps = []; // Empty array for now since this component focuses on code steps
+
+  const copyToClipboard = async (text: string, index: string | number): Promise<void> => {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedIndex(index);
+      toast.success("Code copied to clipboard!");
       setTimeout(() => setCopiedIndex(null), 2000);
     } catch (err) {
       console.error('Failed to copy: ', err);
+      toast.error("Failed to copy code");
     }
   };
 
-  const toggleExpanded = (index) => {
+  const toggleExpanded = (index: ExpandedStepKey): void => {
     const newExpanded = new Set(expandedSteps);
     if (newExpanded.has(index)) {
       newExpanded.delete(index);
@@ -55,81 +48,89 @@ const CodingSteps = ({ workflowJson }) => {
     setExpandedSteps(newExpanded);
   };
 
-  const CodeBlock = ({ code, index, title }) => (
-    <div className="relative">
-      <div className="flex items-center justify-between bg-gray-800 text-gray-200 px-4 py-2 rounded-t-lg">
+  const CodeBlock = ({ code, index, title }: CodeBlockProps): JSX.Element => (
+    <div className="relative border border-primary/10 rounded-lg overflow-hidden">
+      <div className="flex items-center justify-between bg-muted/30 px-4 py-3 border-b border-primary/10">
         <div className="flex items-center gap-2">
-          <Code size={16} />
-          <span className="font-mono text-sm">{title}</span>
+          <Code className="h-4 w-4 text-primary" />
+          <span className="font-mono text-sm font-medium">{title}</span>
+          <Badge variant="outline" className="text-xs">
+            javascript
+          </Badge>
         </div>
-        <button
+        <Button
           onClick={() => copyToClipboard(code, index)}
-          className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm transition-colors"
+          variant="outline"
+          size="sm"
+          className="gap-1.5 h-8"
         >
           {copiedIndex === index ? (
             <>
-              <Check size={14} />
+              <Check className="h-3 w-3 text-green-500" />
               Copied!
             </>
           ) : (
             <>
-              <Copy size={14} />
+              <Copy className="h-3 w-3" />
               Copy
             </>
           )}
-        </button>
+        </Button>
       </div>
-      <pre className="bg-gray-900 text-gray-100 p-4 rounded-b-lg overflow-x-auto text-sm">
+      <pre className="bg-muted/10 text-foreground p-4 overflow-x-auto text-sm font-mono">
         <code>{code}</code>
       </pre>
     </div>
   );
 
   return (
-    <div className="max-w-6xl mx-auto p-6 bg-white">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-          <Zap className="text-blue-600" />
-          Coding Steps
-        </h1>
-        <p className="text-gray-600">
-          JavaScript code snippets from your n8n workflow nodes
-        </p>
-      </div>
-
+    <div className="space-y-6">
       {/* Code Steps Section */}
       {codeSteps && codeSteps.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <Code className="text-green-600" />
-            Code Nodes ({codeSteps.length})
-          </h2>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+              <Code className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <h3 className="text-lg font-semibold">
+              Code Nodes
+            </h3>
+            <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300">
+              {codeSteps.length} {codeSteps.length === 1 ? 'step' : 'steps'}
+            </Badge>
+          </div>
           
-          <div className="space-y-6">
-            {codeSteps.map((step, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg shadow-sm">
+          <div className="space-y-4">
+            {codeSteps.map((step: CodeStepType, index: number) => (
+              <div key={index} className="border border-blue-200/50 dark:border-blue-800/50 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
                 <div 
-                  className="flex items-center justify-between p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                  className="flex items-center justify-between p-4 bg-blue-50/50 dark:bg-blue-950/20 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors rounded-t-lg"
                   onClick={() => toggleExpanded(index)}
                 >
                   <div className="flex items-center gap-3">
-                    {expandedSteps.has(index) ? (
-                      <ChevronDown size={20} className="text-gray-500" />
-                    ) : (
-                      <ChevronRight size={20} className="text-gray-500" />
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 p-0 hover:bg-transparent"
+                    >
+                      {expandedSteps.has(index) ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
                     <div>
-                      <h3 className="font-semibold text-gray-900">{step.title}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{step.description}</p>
+                      <h4 className="font-semibold text-foreground">{step.title}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">{step.description}</p>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <Badge variant="secondary">
                     Step {index + 1}
-                  </div>
+                  </Badge>
                 </div>
                 
                 {expandedSteps.has(index) && (
-                  <div className="p-4 border-t border-gray-200">
+                  <div className="p-4 border-t border-blue-200/50 dark:border-blue-800/50">
                     <CodeBlock 
                       code={step.copyableContent} 
                       index={index} 
@@ -143,38 +144,54 @@ const CodingSteps = ({ workflowJson }) => {
         </div>
       )}
 
-      {/* LangChain Steps Section */}
+      {/* LangChain Steps Section - Kept for legacy reasons but empty */}
       {langchainSteps && langchainSteps.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <Zap className="text-purple-600" />
-            LangChain Nodes ({langchainSteps.length})
-          </h2>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg">
+              <Zap className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <h3 className="text-lg font-semibold">
+              LangChain Nodes
+            </h3>
+            <Badge variant="outline" className="bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300">
+              {langchainSteps.length} {langchainSteps.length === 1 ? 'step' : 'steps'}
+            </Badge>
+          </div>
           
-          <div className="space-y-6">
-            {langchainSteps.map((step, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg shadow-sm">
+          <div className="space-y-4">
+            {langchainSteps.map((step: CodeStepType, index: number) => (
+              <div key={index} className="border border-purple-200/50 dark:border-purple-800/50 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
                 <div 
-                  className="flex items-center justify-between p-4 bg-purple-50 cursor-pointer hover:bg-purple-100 transition-colors"
+                  className="flex items-center justify-between p-4 bg-purple-50/50 dark:bg-purple-950/20 cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-colors rounded-t-lg"
                   onClick={() => toggleExpanded(`langchain-${index}`)}
                 >
                   <div className="flex items-center gap-3">
-                    {expandedSteps.has(`langchain-${index}`) ? (
-                      <ChevronDown size={20} className="text-gray-500" />
-                    ) : (
-                      <ChevronRight size={20} className="text-gray-500" />
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 p-0 hover:bg-transparent"
+                    >
+                      {expandedSteps.has(`langchain-${index}`) ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
                     <div>
-                      <h3 className="font-semibold text-gray-900">{step.title}</h3>
-                      <p className="text-sm text-gray-600 mt-1">AI/LangChain Configuration</p>
+                      <h4 className="font-semibold text-foreground">{step.title}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">AI/LangChain Configuration</p>
                     </div>
                   </div>
+                  <Badge variant="secondary">
+                    Step {index + 1}
+                  </Badge>
                 </div>
                 
                 {expandedSteps.has(`langchain-${index}`) && (
-                  <div className="p-4 border-t border-gray-200">
+                  <div className="p-4 border-t border-purple-200/50 dark:border-purple-800/50">
                     <CodeBlock 
-                      code={step.parameters} 
+                      code={step.jsCode || step.copyableContent} 
                       index={`langchain-${index}`} 
                       title="Parameters"
                     />
@@ -187,9 +204,16 @@ const CodingSteps = ({ workflowJson }) => {
       )}
 
       {(!codeSteps || codeSteps.length === 0) && (!langchainSteps || langchainSteps.length === 0) && (
-        <div className="text-center py-12 text-gray-500">
-          <Code size={48} className="mx-auto mb-4 text-gray-300" />
-          <p>No code steps found in the workflow</p>
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-full mb-4">
+            <Code className="h-8 w-8 text-blue-500" />
+          </div>
+          <h3 className="text-lg font-medium text-foreground mb-2">
+            No Code Steps Found
+          </h3>
+          <p className="text-muted-foreground">
+            This workflow doesn&apos;t contain any custom code or function nodes.
+          </p>
         </div>
       )}
     </div>

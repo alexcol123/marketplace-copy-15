@@ -435,8 +435,51 @@ const SingleWorkflowPage = async ({
       )}
 
 
-      <h2>Steps</h2>
-      <CodingStepsContainer  workflowJson={ workflow.workFlowJson}/>
+      {/* <h2>Steps</h2>
+      <CodingStepsContainer  workflowJson={ workflow.workFlowJson}/> */}
+
+
+{/* Implementation Guide Section - Enhanced */}
+      <section className="mt-14 mb-14">
+        <Separator className="my-8 opacity-50" />
+        <div className="space-y-6">
+          {/* Section Header */}
+          <div className="text-center space-y-3">
+            <h2 className="text-2xl font-semibold text-primary flex items-center justify-center gap-2">
+              <Code className="h-6 w-6" />
+              Implementation Guide
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Step-by-step coding instructions extracted from this workflow. 
+              Use these examples to recreate similar functionality in your own applications 
+              or understand how the n8n workflow operates under the hood.
+            </p>
+          </div>
+
+          {/* CodingStepsContainer with enhanced wrapper */}
+          <div className="bg-gradient-to-b from-muted/20 to-background rounded-xl border border-primary/10 p-6 shadow-sm">
+            <CodingStepsContainer workflowJson={workflow.workFlowJson} />
+          </div>
+
+          {/* Bottom info panel */}
+          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-1">
+                  Implementation Tips
+                </h4>
+                <p className="text-blue-700 dark:text-blue-400">
+                  These code examples are extracted directly from the n8n workflow nodes. 
+                  Adapt them to your preferred programming language and framework. 
+                  Remember to replace any n8n-specific variables with your actual values.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
 
       {/* Author section with improved styling */}
       <section className="mb-12 mt-14">

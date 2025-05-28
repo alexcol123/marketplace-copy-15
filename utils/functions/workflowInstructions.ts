@@ -1,12 +1,12 @@
 /**
  * Extracts specific node types from n8n workflow JSON
- * Focuses on LangChain nodes and Code nodes for documentation
+ * Focuses on AI nodes and Code nodes for documentation
  */
 function extractN8NNodes(workflowJson) {
   const nodes = workflowJson.nodes || [];
 
   const extracted = {
-    langchainNodes: [],
+    aiNodes: [], // Changed from langchainNodes
     codeNodes: [],
     httpNodes: [],
     allSteps: [],
@@ -20,11 +20,12 @@ function extractN8NNodes(workflowJson) {
       id: node.id,
     };
 
-    // Extract LangChain nodes
+    // Extract AI nodes (previously LangChain nodes)
     if (node.type === "@n8n/n8n-nodes-langchain.lmChatOpenAi") {
-      extracted.langchainNodes.push({
+      extracted.aiNodes.push({
         ...step,
-        category: "Chat Model",
+        category: "Chat AI Model",
+        aiProvider: "OpenAI",
         parameters: {
           model: node.parameters?.model,
           options: node.parameters?.options,
@@ -34,9 +35,10 @@ function extractN8NNodes(workflowJson) {
     }
 
     if (node.type === "@n8n/n8n-nodes-langchain.openAi") {
-      extracted.langchainNodes.push({
+      extracted.aiNodes.push({
         ...step,
-        category: "OpenAI",
+        category: "AI Text Generation",
+        aiProvider: "OpenAI",
         parameters: {
           modelId: node.parameters?.modelId,
           messages: node.parameters?.messages,
@@ -48,14 +50,34 @@ function extractN8NNodes(workflowJson) {
     }
 
     if (node.type === "@n8n/n8n-nodes-langchain.agent") {
-      extracted.langchainNodes.push({
+      extracted.aiNodes.push({
         ...step,
-        category: "Agent",
+        category: "AI Agent",
+        aiProvider: "OpenAI",
         parameters: {
           promptType: node.parameters?.promptType,
           text: node.parameters?.text,
           systemMessage: node.parameters?.options?.systemMessage,
         },
+      });
+    }
+
+    // Add more AI providers as they become available
+    if (node.type.includes("anthropic") || node.type.includes("claude")) {
+      extracted.aiNodes.push({
+        ...step,
+        category: "AI Assistant",
+        aiProvider: "Anthropic",
+        parameters: node.parameters,
+      });
+    }
+
+    if (node.type.includes("gemini") || node.type.includes("google")) {
+      extracted.aiNodes.push({
+        ...step,
+        category: "AI Model",
+        aiProvider: "Google",
+        parameters: node.parameters,
       });
     }
 
@@ -87,7 +109,6 @@ function extractN8NNodes(workflowJson) {
           options: node.parameters?.options,
         },
         credentials: node.credentials,
-        // Handle different body types
         jsonBody: node.parameters?.jsonBody,
         parsedJsonBody: node.parameters?.jsonBody
           ? tryParseJson(node.parameters.jsonBody)
@@ -150,9 +171,11 @@ function extractCodeDescription(jsCode) {
  */
 function formatForDisplay(extractedData) {
   return {
-    langchainSteps: extractedData.langchainNodes.map((node) => ({
+    aiSteps: extractedData.aiNodes.map((node) => ({ // Changed from langchainSteps
       title: `${node.name} (${node.category})`,
       type: node.type,
+      aiProvider: node.aiProvider,
+      category: node.category,
       parameters: JSON.stringify(node.parameters, null, 2),
       copyableContent: {
         modelConfig: node.parameters?.model || node.parameters?.modelId,
@@ -219,7 +242,10 @@ function getUrlDomain(url) {
  * Helper to categorize node types
  */
 function getCategoryFromType(nodeType) {
-  if (nodeType.includes("langchain")) return "AI/LangChain";
+  if (nodeType.includes("langchain")) return "AI Integration"; // Changed
+  if (nodeType.includes("openai")) return "AI Integration"; // Added
+  if (nodeType.includes("anthropic")) return "AI Integration"; // Added
+  if (nodeType.includes("gemini")) return "AI Integration"; // Added
   if (nodeType.includes("code")) return "Custom Code";
   if (nodeType.includes("httpRequest")) return "API Call";
   if (nodeType.includes("googleDrive")) return "File Storage";
@@ -241,7 +267,7 @@ function processWorkflowForWebsite(workflowJson) {
   return {
     workflowName: workflowJson.name,
     totalSteps: extracted.allSteps.length,
-    langchainCount: extracted.langchainNodes.length,
+    aiCount: extracted.aiNodes.length, // Changed from langchainCount
     codeCount: extracted.codeNodes.length,
     httpCount: extracted.httpNodes.length,
     data: formatted,
@@ -252,9 +278,10 @@ function processWorkflowForWebsite(workflowJson) {
 /*
 const workflowData = processWorkflowForWebsite(yourWorkflowJson);
 
-// For LangChain nodes display:
-workflowData.data.langchainSteps.forEach(step => {
+// For AI nodes display:
+workflowData.data.aiSteps.forEach(step => {
   console.log(`Title: ${step.title}`);
+  console.log(`AI Provider: ${step.aiProvider}`);
   console.log(`Parameters: ${step.parameters}`);
   console.log(`Copyable: ${JSON.stringify(step.copyableContent)}`);
 });
