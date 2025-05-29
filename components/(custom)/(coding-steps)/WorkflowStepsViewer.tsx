@@ -42,6 +42,18 @@ const WorkflowStepsViewer: React.FC<WorkflowStepsViewerProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
 
+  const toggleStepExpansion = (stepId: string) => {
+  setExpandedSteps((prev) => {
+    const newSet = new Set(prev);
+    if (newSet.has(stepId)) {
+      newSet.delete(stepId);
+    } else {
+      newSet.add(stepId);
+    }
+    return newSet;
+  });
+};
+
   // Function to determine execution order based on workflow connections
   const getExecutionOrder = (nodes: any[], connections: any) => {
     const executionOrder: string[] = [];
@@ -126,200 +138,289 @@ const WorkflowStepsViewer: React.FC<WorkflowStepsViewerProps> = ({
     return executionOrder;
   };
 
-  // Parse and process the workflow data
-  const { steps, workflowInfo, hasError } = useMemo(() => {
-    try {
-      let workflowData;
+const { steps, workflowInfo, hasError } = useMemo(() => {
+  try {
+    let workflowData;
 
-      // Parse the workflow content
-      if (typeof workflowContent === "string") {
-        workflowData = JSON.parse(workflowContent);
+    if (typeof workflowContent === "string") {
+      workflowData = JSON.parse(workflowContent);
+    } else {
+      workflowData = workflowContent;
+    }
+
+    if (!workflowData?.nodes || !Array.isArray(workflowData.nodes)) {
+      throw new Error("Invalid workflow structure: missing nodes array");
+    }
+
+    console.log("=== DEBUGGING WORKFLOW PROCESSING ===");
+    console.log("Total nodes:", workflowData.nodes.length);
+
+    // First, let's see all nodes before filtering
+    console.log("All nodes before filtering:");
+    workflowData.nodes.forEach((node, index) => {
+      console.log(`${index + 1}. Name: "${node.name}", Type: "${node.type}"`);
+    });
+
+    // Filter out sticky notes
+    const filteredNodes = workflowData.nodes.filter((node: any) => {
+      const nodeType = node.type?.toLowerCase() || "";
+      const isSticky = nodeType.includes("stickynote") || 
+                      nodeType.includes("sticky-note") || 
+                      node.type === "n8n-nodes-base.stickyNote";
+      
+      if (isSticky) {
+        console.log(`❌ Filtered out sticky note: ${node.name}`);
+      }
+      return !isSticky;
+    });
+
+    console.log(`Nodes after filtering: ${filteredNodes.length}`);
+
+    // Process each node and log categorization
+    const processedSteps: UnifiedStepData[] = filteredNodes.map((node: any, index: number) => {
+      let category: UnifiedStepData["category"] = "generic";
+      const nodeType = node.type?.toLowerCase() || "";
+
+      console.log(`\n--- Processing Node ${index + 1} ---`);
+      console.log(`Name: "${node.name}"`);
+      console.log(`Type: "${node.type}"`);
+      console.log(`Type (lowercase): "${nodeType}"`);
+
+      // Check each category condition explicitly
+      const isAI = nodeType.includes("openai") || 
+                  nodeType.includes("anthropic") || 
+                  nodeType.includes("google") || 
+                  nodeType.includes("ai") || 
+                  nodeType.includes("gpt") || 
+                  nodeType.includes("claude");
+
+      const isHTTP = nodeType.includes("http") || 
+                    nodeType.includes("webhook") || 
+                    nodeType.includes("request");
+
+      const isCode = nodeType.includes("code") || 
+                    nodeType.includes("javascript") || 
+                    nodeType.includes("python") || 
+                    nodeType.includes("function");
+
+      console.log(`AI check: ${isAI}`);
+      console.log(`HTTP check: ${isHTTP}`);
+      console.log(`Code check: ${isCode}`);
+
+      if (isAI) {
+        category = "ai";
+        console.log(`✅ Categorized as AI`);
+      } else if (isHTTP) {
+        category = "http";
+        console.log(`✅ Categorized as HTTP`);
+      } else if (isCode) {
+        category = "code";
+        console.log(`✅ Categorized as CODE`);
       } else {
-        workflowData = workflowContent;
+        console.log(`➡️ Categorized as GENERIC`);
       }
 
-      // Validate required structure
-      if (!workflowData?.nodes || !Array.isArray(workflowData.nodes)) {
-        throw new Error("Invalid workflow structure: missing nodes array");
-      }
+      const step = {
+        id: node.id || `step-${index}`,
+        name: node.name || `Step ${index + 1}`,
+        type: node.type || "unknown",
+        category,
+        parameters: node.parameters || {},
+        position: node.position || [0, 0],
+        originalNode: node,
+        stepNumber: index + 1,
+      };
 
-      // Extract workflow info
-      const info = {
+      console.log(`Final step category: ${step.category}`);
+      return step;
+    });
+
+    // Log final categorization summary
+    console.log("\n=== CATEGORIZATION SUMMARY ===");
+    const categoryCounts = processedSteps.reduce((acc, step) => {
+      acc[step.category] = (acc[step.category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    Object.entries(categoryCounts).forEach(([category, count]) => {
+      console.log(`${category.toUpperCase()}: ${count} steps`);
+    });
+
+    console.log("\nCode steps specifically:");
+    processedSteps
+      .filter(step => step.category === "code")
+      .forEach(step => {
+        console.log(`- ${step.name} (${step.type})`);
+      });
+
+    return {
+      steps: processedSteps,
+      workflowInfo: {
         name: workflowData.name || "Unnamed Workflow",
         nodeCount: workflowData.nodes.length,
-        connectionCount: workflowData.connections
-          ? Object.keys(workflowData.connections).length
-          : 0,
+        connectionCount: workflowData.connections ? Object.keys(workflowData.connections).length : 0,
         tags: workflowData.tags || [],
         description: workflowData.description || "",
-      };
+      },
+      hasError: false,
+    };
+  } catch (error) {
+    console.error("Error processing workflow:", error);
+    return {
+      steps: [],
+      workflowInfo: null,
+      hasError: true,
+    };
+  }
+}, [workflowContent, maxStepsToShow]);
 
-      // Process nodes into unified step data (excluding sticky notes)
-      const processedSteps: UnifiedStepData[] = workflowData.nodes
-        .filter((node: any) => {
-          // Filter out sticky notes and other non-functional nodes
-          const nodeType = node.type?.toLowerCase() || "";
-          return (
-            !nodeType.includes("stickynote") &&
-            !nodeType.includes("sticky-note") &&
-            node.type !== "n8n-nodes-base.stickyNote"
-          );
-        })
-        .map((node: any, index: number) => {
-          // Determine step category
-          let category: UnifiedStepData["category"] = "generic";
-          const nodeType = node.type?.toLowerCase() || "";
+// 2. Enhanced renderStepCard with more debugging
+// const renderStepCard = (step: UnifiedStepData) => {
+//   const isExpanded = expandedSteps.has(step.id);
 
-          if (
-            nodeType.includes("openai") ||
-            nodeType.includes("anthropic") ||
-            nodeType.includes("google") ||
-            nodeType.includes("ai") ||
-            nodeType.includes("gpt") ||
-            nodeType.includes("claude")
-          ) {
-            category = "ai";
-          } else if (
-            nodeType.includes("http") ||
-            nodeType.includes("webhook") ||
-            nodeType.includes("request")
-          ) {
-            category = "http";
-          } else if (
-            nodeType.includes("code") ||
-            nodeType.includes("javascript") ||
-            nodeType.includes("python") ||
-            nodeType.includes("function")
-          ) {
-            category = "code";
-          }
+//   console.log(`Rendering step: ${step.name}, Category: ${step.category}, Expanded: ${isExpanded}`);
 
-          return {
-            id: node.id || `step-${index}`,
-            name: node.name || `Step ${index + 1}`,
-            type: node.type || "unknown",
-            category,
-            parameters: node.parameters || {},
-            position: node.position || [0, 0],
-            originalNode: node,
-            stepNumber: index + 1,
-          };
-        })
-        // Sort by actual workflow execution order
-        .sort((a, b) => {
-          const executionOrder = getExecutionOrder(
-            workflowData.nodes,
-            workflowData.connections
-          );
-          const aIndex = executionOrder.indexOf(a.originalNode.id);
-          const bIndex = executionOrder.indexOf(b.originalNode.id);
+//   if (!isExpanded) {
+//     return (
+//       <div
+//         key={step.id}
+//         className="border rounded-lg p-4 hover:border-primary/40 transition-colors cursor-pointer bg-gradient-to-r from-muted/30 to-transparent"
+//         onClick={() => {
+//           console.log(`Expanding step: ${step.name} (${step.category})`);
+//           toggleStepExpansion(step.id);
+//         }}
+//       >
+//         <div className="flex items-center justify-between">
+//           <div className="flex items-center gap-3">
+//             <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary font-semibold text-sm">
+//               {step.stepNumber}
+//             </div>
+//             <div>
+//               <h4 className="font-medium text-sm">{step.name}</h4>
+//               <p className="text-xs text-muted-foreground capitalize">
+//                 {step.category} • {step.type.replace(/^n8n-nodes-base\./, "")}
+//               </p>
+//             </div>
+//           </div>
+//           <div className="flex items-center gap-2">
+//             <Badge variant="outline" className="text-xs">
+//               {step.category}
+//             </Badge>
+//             <ChevronRight className="h-4 w-4 text-muted-foreground" />
+//           </div>
+//         </div>
+//       </div>
+//     );
+//   }
 
-          // If both nodes are in execution order, sort by that
-          if (aIndex !== -1 && bIndex !== -1) {
-            return aIndex - bIndex;
-          }
+//   // Expanded state - show the full step card
+//   console.log(`Rendering expanded card for ${step.name} with category ${step.category}`);
 
-          // If one is in execution order and one isn't, prioritize the one in execution order
-          if (aIndex !== -1) return -1;
-          if (bIndex !== -1) return 1;
+//   return (
+//     <div key={step.id} className="space-y-2">
+//       <div
+//         className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+//         onClick={() => toggleStepExpansion(step.id)}
+//       >
+//         <ChevronDown className="h-4 w-4" />
+//         <span>Collapse Step {step.stepNumber}</span>
+//       </div>
 
-          // Fallback to position-based sorting for nodes not in execution flow
-          const aY = a.position[1] || 0;
-          const bY = b.position[1] || 0;
-          const aX = a.position[0] || 0;
-          const bX = b.position[0] || 0;
+//       {/* Debug the specific rendering logic */}
+//       {step.category === "ai" && (
+//         <>
+//           {console.log("Rendering AIStepCard for:", step.name)}
+//           <AIStepCard step={step} />
+//         </>
+//       )}
+//       {step.category === "http" && (
+//         <>
+//           {console.log("Rendering HttpStepCard for:", step.name)}
+//           <HttpStepCard step={step} />
+//         </>
+//       )}
+//       {step.category === "code" && (
+//         <>
+//           {console.log("Rendering CodeStepCard for:", step.name)}
+//           {/* Temporary fallback to see if the issue is with CodeStepCard */}
+//           <div className="p-4 bg-orange-100 border border-orange-300 rounded">
+//             <h3 className="font-bold">CODE STEP: {step.name}</h3>
+//             <p>Type: {step.type}</p>
+//             <p>Category: {step.category}</p>
+//             <pre className="text-xs mt-2 bg-gray-800 text-white p-2 rounded">
+//               {JSON.stringify(step.parameters, null, 2)}
+//             </pre>
+//           </div>
+//           {/* Uncomment this when you have CodeStepCard ready */}
+//           {/* <CodeStepCard step={step} /> */}
+//         </>
+//       )}
+//       {step.category === "generic" && (
+//         <>
+//           {console.log("Rendering GenericStepCard for:", step.name)}
+//           <GenericStepCard step={step} />
+//         </>
+//       )}
+//     </div>
+//   );
+// };
 
-          if (Math.abs(aY - bY) > 100) {
-            return aY - bY;
-          }
-          return aX - bX;
-        })
-        // Limit the number of steps if specified
-        .slice(0, maxStepsToShow);
 
-      return {
-        steps: processedSteps,
-        workflowInfo: info,
-        hasError: false,
-      };
-    } catch (error) {
-      console.error("Error processing workflow:", error);
-      return {
-        steps: [],
-        workflowInfo: null,
-        hasError: true,
-      };
-    }
-  }, [workflowContent, maxStepsToShow]);
+// Clean version of renderStepCard function (remove debug code)
+const renderStepCard = (step: UnifiedStepData) => {
+  const isExpanded = expandedSteps.has(step.id);
 
-  // Toggle step expansion
-  const toggleStepExpansion = (stepId: string) => {
-    setExpandedSteps((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(stepId)) {
-        newSet.delete(stepId);
-      } else {
-        newSet.add(stepId);
-      }
-      return newSet;
-    });
-  };
-
-  // Render the appropriate step card based on category
-  const renderStepCard = (step: UnifiedStepData) => {
-    const isExpanded = expandedSteps.has(step.id);
-
-    if (!isExpanded) {
-      // Collapsed state - show just a summary
-      return (
-        <div
-          key={step.id}
-          className="border rounded-lg p-4 hover:border-primary/40 transition-colors cursor-pointer bg-gradient-to-r from-muted/30 to-transparent"
-          onClick={() => toggleStepExpansion(step.id)}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary font-semibold text-sm">
-                {step.stepNumber}
-              </div>
-              <div>
-                <h4 className="font-medium text-sm">{step.name}</h4>
-                <p className="text-xs text-muted-foreground capitalize">
-                  {step.category} • {step.type.replace(/^n8n-nodes-base\./, "")}
-                </p>
-              </div>
+  if (!isExpanded) {
+    // Collapsed state - show just a summary
+    return (
+      <div
+        key={step.id}
+        className="border rounded-lg p-4 hover:border-primary/40 transition-colors cursor-pointer bg-gradient-to-r from-muted/30 to-transparent"
+        onClick={() => toggleStepExpansion(step.id)}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary font-semibold text-sm">
+              {step.stepNumber}
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">
-                {step.category}
-              </Badge>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <h4 className="font-medium text-sm">{step.name}</h4>
+              <p className="text-xs text-muted-foreground capitalize">
+                {step.category} • {step.type.replace(/^n8n-nodes-base\./, "")}
+              </p>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">
+              {step.category}
+            </Badge>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </div>
         </div>
-      );
-    }
-
-    // Expanded state - show the full step card
-    return (
-      <div key={step.id} className="space-y-2">
-        {/* Collapse button */}
-        <div
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
-          onClick={() => toggleStepExpansion(step.id)}
-        >
-          <ChevronDown className="h-4 w-4" />
-          <span>Collapse Step {step.stepNumber}</span>
-        </div>
-
-        {/* Render the appropriate card */}
-        {step.category === "ai" && <AIStepCard step={step} />}
-        {step.category === "http" && <HttpStepCard step={step} />}
-        {step.category === "code" && <CodeStepCard step={step} />}
-        {step.category === "generic" && <GenericStepCard step={step} />}
       </div>
     );
-  };
+  }
+
+  // Expanded state - show the full step card
+  return (
+    <div key={step.id} className="space-y-2">
+      {/* Collapse button */}
+      <div
+        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+        onClick={() => toggleStepExpansion(step.id)}
+      >
+        <ChevronDown className="h-4 w-4" />
+        <span>Collapse Step {step.stepNumber}</span>
+      </div>
+
+      {/* Render the appropriate card */}
+      {step.category === "ai" && <AIStepCard step={step} />}
+      {step.category === "http" && <HttpStepCard step={step} />}
+      {step.category === "code" && <CodeStepCard step={step} />}
+      {step.category === "generic" && <GenericStepCard step={step} />}
+    </div>
+  );
+};
 
   // Error state
   if (hasError) {
