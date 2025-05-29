@@ -37,6 +37,7 @@ import EmptyList from "@/components/(custom)/EmptyList";
 import YouTubeVideoPlayer from "@/components/(custom)/(video)/YoutubeVideoPlayer";
 
 import CodingStepsContainer from "@/components/(custom)/(coding-steps)/CodingStepsContainer";
+import WorkflowStepsViewer from "@/components/(custom)/(coding-steps)/WorkflowStepsViewer";
 // Import the YouTube player component
 
 
@@ -435,7 +436,56 @@ const SingleWorkflowPage = async ({
       )}
 
 
+    {/* Coding Tutorial Section */}
+      {workflow.workFlowJson && (
+        <section className="mt-14 mb-14">
+          <Separator className="my-8 opacity-50" />
+          <h2 className="text-2xl font-semibold mb-4 text-primary flex items-center gap-2">
+            <Code className="h-6 w-6" />
+            Learn to Build This Workflow
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            Dive into the actual implementation steps used in this workflow. Learn how to integrate AI, 
+            write custom code, and make API calls by examining the real components.
+          </p>
+          
+          {/* Pass the workflow JSON to the CodingStepsContainer */}
+          <CodingStepsContainer workflowJson={workflow.workFlowJson} />
+        </section>
+      )}
 
+      {/* NEW: Interactive Workflow Steps Section */}
+      {workflow.workFlowJson && (
+        <section className="mt-14 mb-14">
+          <Separator className="my-8 opacity-50" />
+          
+          {/* Pass the workflow JSON to the WorkflowStepsViewer */}
+          <WorkflowStepsViewer 
+            workflowContent={workflow.workFlowJson}
+            title="Interactive Step-by-Step Implementation Guide"
+            showTitle={true}
+            maxStepsToShow={15}
+            className="space-y-6"
+          />
+          
+          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-start gap-3">
+              <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-1">
+                  How to Use This Guide
+                </h4>
+                <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
+                  <li>• Click "View Steps" to see the interactive breakdown</li>
+                  <li>• Expand individual steps to see detailed implementation</li>
+                  <li>• Copy code snippets, configurations, and JSON directly</li>
+                  <li>• Use the "Copy Workflow" tab for standalone implementations</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
 
       {/* NEW: Coding Tutorial Section */}
