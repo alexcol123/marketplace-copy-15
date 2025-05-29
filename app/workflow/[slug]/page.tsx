@@ -36,10 +36,8 @@ import { Workflow, Profile } from "@prisma/client";
 import EmptyList from "@/components/(custom)/EmptyList";
 import YouTubeVideoPlayer from "@/components/(custom)/(video)/YoutubeVideoPlayer";
 
-import CodingStepsContainer from "@/components/(custom)/(coding-steps)/CodingStepsContainer";
 import WorkflowStepsViewer from "@/components/(custom)/(coding-steps)/WorkflowStepsViewer";
 // Import the YouTube player component
-
 
 type WorkflowWithAuthor = Workflow & {
   author: Profile;
@@ -435,78 +433,85 @@ const SingleWorkflowPage = async ({
         </section>
       )}
 
-
-    {/* Coding Tutorial Section */}
+      {/* Enhanced Interactive Workflow Learning Section */}
       {workflow.workFlowJson && (
         <section className="mt-14 mb-14">
           <Separator className="my-8 opacity-50" />
-          <h2 className="text-2xl font-semibold mb-4 text-primary flex items-center gap-2">
-            <Code className="h-6 w-6" />
-            Learn to Build This Workflow
-          </h2>
-          <p className="text-muted-foreground mb-6">
-            Dive into the actual implementation steps used in this workflow. Learn how to integrate AI, 
-            write custom code, and make API calls by examining the real components.
-          </p>
-          
-          {/* Pass the workflow JSON to the CodingStepsContainer */}
-          <CodingStepsContainer workflowJson={workflow.workFlowJson} />
-        </section>
-      )}
 
-      {/* NEW: Interactive Workflow Steps Section */}
-      {workflow.workFlowJson && (
-        <section className="mt-14 mb-14">
-          <Separator className="my-8 opacity-50" />
-          
-          {/* Pass the workflow JSON to the WorkflowStepsViewer */}
-          <WorkflowStepsViewer 
-            workflowContent={workflow.workFlowJson}
-            title="Interactive Step-by-Step Implementation Guide"
-            showTitle={true}
-            maxStepsToShow={15}
-            className="space-y-6"
-          />
-          
-          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <div className="flex items-start gap-3">
-              <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-1">
-                  How to Use This Guide
-                </h4>
-                <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
-                  <li>• Click "View Steps" to see the interactive breakdown</li>
-                  <li>• Expand individual steps to see detailed implementation</li>
-                  <li>• Copy code snippets, configurations, and JSON directly</li>
-                  <li>• Use the "Copy Workflow" tab for standalone implementations</li>
-                </ul>
-              </div>
+          {/* Enhanced Header with Better Visual Hierarchy */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/70 text-white mb-4 shadow-lg">
+              <Code className="h-8 w-8" />
+            </div>
+
+            <h2 className="text-3xl font-bold mb-3 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
+              Learn to Build This Workflow
+            </h2>
+
+            <p className="text-muted-foreground text-lg max-w-3xl mx-auto leading-relaxed">
+              Dive into the actual implementation steps used in this workflow.
+              Learn how to integrate AI, write custom code, and make API calls
+              by examining the real components and configurations.
+            </p>
+          </div>
+
+          {/* Feature Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Card className="border-primary/20 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+              <CardContent className="p-6 text-center">
+                <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-4">
+                  <BarChart className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="font-semibold mb-2">Step-by-Step Breakdown</h3>
+                <p className="text-sm text-muted-foreground">
+                  Interactive guide through each node and connection in the
+                  workflow
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+              <CardContent className="p-6 text-center">
+                <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center mx-auto mb-4">
+                  <Code className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="font-semibold mb-2">Code Examples</h3>
+                <p className="text-sm text-muted-foreground">
+                  Copy-paste ready code snippets and configurations
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20 hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+              <CardContent className="p-6 text-center">
+                <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center mx-auto mb-4">
+                  <FileText className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                </div>
+                <h3 className="font-semibold mb-2">Implementation Guide</h3>
+                <p className="text-sm text-muted-foreground">
+                  Detailed explanations of logic, APIs, and integrations
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Interactive Workflow Component */}
+          <div className="relative">
+            {/* Decorative background gradient */}
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 rounded-2xl blur-3xl"></div>
+
+            <div className="relative bg-card/50 backdrop-blur-sm border border-primary/20 rounded-2xl p-6 shadow-xl">
+              <WorkflowStepsViewer
+                workflowContent={workflow.workFlowJson}
+                title="Interactive Step-by-Step Implementation Guide"
+                showTitle={true}
+                maxStepsToShow={15}
+                className="space-y-6"
+              />
             </div>
           </div>
         </section>
       )}
-
-
-      {/* NEW: Coding Tutorial Section */}
-      {workflow.workFlowJson && (
-        <section className="mt-14 mb-14">
-          <Separator className="my-8 opacity-50" />
-          <h2 className="text-2xl font-semibold mb-4 text-primary flex items-center gap-2">
-            <Code className="h-6 w-6" />
-            Learn to Build This Workflow
-          </h2>
-          <p className="text-muted-foreground mb-6">
-            Dive into the actual implementation steps used in this workflow. Learn how to integrate AI, 
-            write custom code, and make API calls by examining the real components.
-          </p>
-          
-          {/* Pass the workflow JSON to the CodingStepsContainer */}
-          <CodingStepsContainer workflowJson={workflow.workFlowJson} />
-        </section>
-      )}
-
-
 
       {/* Author section with improved styling */}
       <section className="mb-12 mt-14">
