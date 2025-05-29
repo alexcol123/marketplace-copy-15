@@ -24,19 +24,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-// Types for the component
-export type CodeStepType = {
-  title: string;
-  description: string;
-  jsCode: string;
-  copyableContent: string;
-  nodeType?: string;
-  requirements?: string[];
-};
-
-export type CodingStepsProps = {
-  workflowJson: CodeStepType[];
-};
+// Import types from the container component
+import { CodingStepsProps, CodeStepType } from "./CodingStepsContainer";
 
 // Props for the CodeBlock subcomponent
 type CodeBlockProps = {
@@ -52,11 +41,11 @@ type StepContentProps = {
   stepIndex: number;
 };
 
-const CodingSteps = ({ workflowJson }: CodingStepsProps) => {
+const CodingSteps = ({ steps }: CodingStepsProps) => {
   const [copiedIndex, setCopiedIndex] = useState<string | null>(null);
   const [expandedSteps, setExpandedSteps] = useState(new Set<number>());
 
-  const codeSteps = workflowJson;
+  const codeSteps = steps;
 
   const copyToClipboard = async (text: string, index: string): Promise<void> => {
     try {
@@ -417,28 +406,13 @@ module.exports = { ${functions.join(', ')} };`;
                     </ul>
                   </div>
                 )}
-
-                {step.requirements && step.requirements.length > 0 && (
-                  <div className="bg-purple-50 dark:bg-purple-950/30 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
-                    <h4 className="font-medium text-purple-800 dark:text-purple-300 mb-2">
-                      📦 Requirements:
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {step.requirements.map((req, idx) => (
-                        <Badge key={idx} variant="outline" className="text-xs text-purple-600 border-purple-300">
-                          {req}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
                 
                 {/* Quick copy buttons */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => copyToClipboard(step.copyableContent || step.jsCode, `${stepIndex}-full-code`)}
+                    onClick={() => copyToClipboard(step.jsCode, `${stepIndex}-full-code`)}
                     className="justify-start"
                   >
                     {copiedIndex === `${stepIndex}-full-code` ? (
@@ -578,7 +552,7 @@ module.exports = { ${functions.join(', ')} };`;
         const complexity = analyzeCodeComplexity(step.jsCode);
         
         return (
-          <Card key={index} className="w-full overflow-hidden border-blue-200/50 dark:border-blue-800/50 transition-all duration-200 hover:shadow-md">
+          <Card key={step.id} className="w-full overflow-hidden border-blue-200/50 dark:border-blue-800/50 transition-all duration-200 hover:shadow-md">
             <CardHeader 
               className="cursor-pointer hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors p-4"
               onClick={() => toggleExpanded(index)}
@@ -599,13 +573,13 @@ module.exports = { ${functions.join(', ')} };`;
                   <Code className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <CardTitle className="text-base font-semibold mb-1">
-                      <span className="truncate" title={step.title}>
-                        {step.title}
+                      <span className="truncate" title={step.name}>
+                        {step.name} (Code Logic)
                       </span>
                     </CardTitle>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline" className="font-mono text-xs bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 flex-shrink-0">
-                        {step.nodeType || 'JavaScript'}
+                        JavaScript
                       </Badge>
                       <Badge 
                         variant="outline" 
@@ -624,7 +598,7 @@ module.exports = { ${functions.join(', ')} };`;
                   </div>
                 </div>
                 <Badge variant="secondary" className="ml-4 flex-shrink-0">
-                  Step {index + 1}
+                  Step {step.stepNumber}
                 </Badge>
               </div>
             </CardHeader>
@@ -640,5 +614,3 @@ module.exports = { ${functions.join(', ')} };`;
 };
 
 export default CodingSteps;
-
-

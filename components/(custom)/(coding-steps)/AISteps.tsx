@@ -44,29 +44,79 @@ type StepContentProps = {
   stepIndex: number;
 };
 
-const AISteps = ({ workflowJson }: AIStepsProps) => {
+const AISteps = ({ steps }: AIStepsProps) => {
   const [copiedIndex, setCopiedIndex] = useState<string | null>(null);
   const [expandedSteps, setExpandedSteps] = useState(new Set<number>());
 
-  const aiSteps = workflowJson;
+  const aiSteps = steps;
 
   // Safely extract string value from n8n's resource locator objects
   const extractValue = (obj: any): string => {
     if (!obj) return '';
     if (typeof obj === 'string') return obj;
-    if (obj.value !== undefined) return String(obj.value);
-    if (obj.cachedResultName !== undefined) return String(obj.cachedResultName);
-    return '';
+    if (typeof obj === 'number') return String(obj);
+    if (typeof obj === 'boolean') return String(obj);
+    
+    // Handle n8n resource locator objects
+    if (typeof obj === 'object' && obj !== null) {
+      if (obj.value !== undefined) return String(obj.value);
+      if (obj.cachedResultName !== undefined) return String(obj.cachedResultName);
+      if (obj.__rl !== undefined && obj.value !== undefined) return String(obj.value);
+      
+      // If it's an array, join the elements
+      if (Array.isArray(obj)) {
+        return obj.map(item => extractValue(item)).join(', ');
+      }
+      
+      // For other objects, stringify them safely
+      try {
+        return JSON.stringify(obj, null, 2);
+      } catch (error) {
+        return '[Object]';
+      }
+    }
+    
+    return String(obj);
   };
 
-  // Safely stringify any object/value for display
+  // Process object to convert resource locators to readable values
+  const processResourceLocators = (obj: any): any => {
+    if (obj === null || obj === undefined) return obj;
+    
+    // Handle resource locator objects
+    if (typeof obj === 'object' && obj !== null && (obj.__rl !== undefined || obj.value !== undefined || obj.cachedResultName !== undefined)) {
+      return extractValue(obj);
+    }
+    
+    // Handle arrays
+    if (Array.isArray(obj)) {
+      return obj.map(item => processResourceLocators(item));
+    }
+    
+    // Handle regular objects
+    if (typeof obj === 'object' && obj !== null) {
+      const processed: any = {};
+      for (const [key, value] of Object.entries(obj)) {
+        processed[key] = processResourceLocators(value);
+      }
+      return processed;
+    }
+    
+    return obj;
+  };
+
+  // Safely stringify any object/value for display - FIXED VERSION
   const safeStringify = (value: any): string => {
-    if (typeof value === 'string') return value;
     if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    
     try {
-      return JSON.stringify(value, null, 2);
+      // Process the object recursively to handle nested resource locators
+      const processedObj = processResourceLocators(value);
+      return JSON.stringify(processedObj, null, 2);
     } catch (error) {
-      return String(value);
+      return '[Complex Object]';
     }
   };
 
@@ -141,19 +191,25 @@ const AISteps = ({ workflowJson }: AIStepsProps) => {
     }
   };
 
-  // Analyze AI configuration complexity
+  // Analyze AI configuration complexity - FIXED VERSION
   const analyzeAIComplexity = (step: AIStepType): { level: string; color: string; reasons: string[] } => {
     let complexity = 0;
     const reasons: string[] = [];
     
-    // Check configuration parameters
-    const configStr = step.parameters || '{}';
-    const hasSystemMessage = step.copyableContent?.systemMessage && step.copyableContent.systemMessage.length > 100;
-    const hasComplexPrompt = step.copyableContent?.prompt && step.copyableContent.prompt.length > 200;
-    const hasMultipleMessages = configStr.includes('messages') && (configStr.match(/role/g) || []).length > 2;
+    // Extract values safely before checking them
+    const systemMessage = extractValue(step.parameters?.systemMessage);
+    const textPrompt = extractValue(step.parameters?.text);
+    const messages = step.parameters?.messages;
+    const model = extractValue(step.parameters?.model);
+    
+    // Check configuration parameters using extracted values
+    const configStr = safeStringify(step.parameters);
+    const hasSystemMessage = systemMessage && systemMessage.length > 100;
+    const hasComplexPrompt = textPrompt && textPrompt.length > 200;
+    const hasMultipleMessages = messages && Array.isArray(messages) && messages.length > 2;
     const hasAdvancedSettings = /temperature|top_p|max_tokens|frequency_penalty|presence_penalty/.test(configStr);
     const hasFunctionCalling = /functions|tools/.test(configStr);
-    const hasCustomModel = step.copyableContent?.modelConfig && !['gpt-3.5-turbo', 'gpt-4', 'claude-3-haiku'].includes(step.copyableContent.modelConfig);
+    const hasCustomModel = model && !['gpt-3.5-turbo', 'gpt-4', 'claude-3-haiku'].includes(model);
     
     if (hasSystemMessage) { complexity += 1; reasons.push('Complex system message'); }
     if (hasComplexPrompt) { complexity += 1; reasons.push('Detailed prompt engineering'); }
@@ -184,15 +240,11 @@ const AISteps = ({ workflowJson }: AIStepsProps) => {
            (step.aiProvider && !step.type?.includes('googleDrive'));
   };
 
-  // Generate example implementation code
+  // Generate example implementation code - FIXED VERSION
   const generateImplementationCode = (step: AIStepType): string => {
-    const modelConfig = extractValue(step.copyableContent?.modelConfig);
-    const systemMessage = safeStringify(step.copyableContent?.systemMessage);
-    const prompt = step.copyableContent?.prompt ? 
-      (Array.isArray(step.copyableContent.prompt.values) ? 
-        step.copyableContent.prompt.values.map((msg: any) => msg.content).join('\n') :
-        safeStringify(step.copyableContent.prompt)) :
-      '';
+    const modelConfig = extractValue(step.parameters?.model || step.parameters?.modelId) || 'default-model';
+    const systemMessage = extractValue(step.parameters?.systemMessage) || '';
+    const prompt = extractValue(step.parameters?.text || step.parameters?.messages) || '';
 
     if (step.aiProvider?.toLowerCase() === 'openai') {
       return `// OpenAI ${step.category} Implementation
@@ -205,8 +257,8 @@ const openai = new OpenAI({
 async function callOpenAI() {
   try {
     const response = await openai.chat.completions.create({
-      model: "${modelConfig || 'gpt-4'}",
-      messages: [${systemMessage && systemMessage !== '""' ? `
+      model: "${modelConfig}",
+      messages: [${systemMessage ? `
         {
           role: "system",
           content: \`${systemMessage.replace(/`/g, '\\`').replace(/"/g, '\\"')}\`
@@ -241,8 +293,8 @@ const anthropic = new Anthropic({
 async function callClaude() {
   try {
     const response = await anthropic.messages.create({
-      model: "${modelConfig || 'claude-3-sonnet-20240229'}",
-      max_tokens: 1000,${systemMessage && systemMessage !== '""' ? `
+      model: "${modelConfig}",
+      max_tokens: 1000,${systemMessage ? `
       system: \`${systemMessage.replace(/`/g, '\\`').replace(/"/g, '\\"')}\`,` : ''}
       messages: [
         {
@@ -271,10 +323,10 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 async function callGemini() {
   try {
     const model = genAI.getGenerativeModel({ 
-      model: "${modelConfig || 'gemini-pro'}" 
+      model: "${modelConfig}" 
     });
 
-    const promptText = \`${systemMessage && systemMessage !== '""' ? 
+    const promptText = \`${systemMessage ? 
       systemMessage.replace(/`/g, '\\`').replace(/"/g, '\\"') + '\n\n' : 
       ''}${prompt.replace(/`/g, '\\`').replace(/"/g, '\\"')}\`;
 
@@ -303,7 +355,7 @@ const client = new ${step.aiProvider}Client({
 async function callAI() {
   try {
     const response = await client.generate({
-      model: "${modelConfig || 'default-model'}",${systemMessage && systemMessage !== '""' ? `
+      model: "${modelConfig}",${systemMessage ? `
       systemMessage: \`${systemMessage.replace(/`/g, '\\`').replace(/"/g, '\\"')}\`,` : ''}
       prompt: \`${prompt.replace(/`/g, '\\`').replace(/"/g, '\\"')}\`,
       // Add your specific configuration here
@@ -404,20 +456,16 @@ console.log(result);`;
   );
 
   const StepContent = ({ step, stepIndex }: StepContentProps): JSX.Element => {
-    const hasModelConfig = step.copyableContent?.modelConfig;
-    const hasPrompt = step.copyableContent?.prompt;
-    const hasSystemMessage = step.copyableContent?.systemMessage;
-    const hasFullConfig = step.parameters;
-    const complexity = analyzeAIComplexity(step);
+    // Extract values safely before checking them
+    const modelConfig = extractValue(step.parameters?.model || step.parameters?.modelId);
+    const systemMessage = extractValue(step.parameters?.systemMessage);
+    const prompt = extractValue(step.parameters?.text) || safeStringify(step.parameters?.messages);
     
-    // Extract readable values
-    const modelConfig = extractValue(step.copyableContent?.modelConfig);
-    const systemMessage = safeStringify(step.copyableContent?.systemMessage);
-    const prompt = step.copyableContent?.prompt ? 
-      (Array.isArray(step.copyableContent.prompt.values) ? 
-        step.copyableContent.prompt.values.map((msg: any) => msg.content).join('\n') :
-        safeStringify(step.copyableContent.prompt)) :
-      '';
+    const hasModelConfig = !!modelConfig;
+    const hasPrompt = !!prompt;
+    const hasSystemMessage = !!systemMessage;
+    const hasFullConfig = !!step.parameters;
+    const complexity = analyzeAIComplexity(step);
     
     return (
       <div className="border-t border-primary/10">
@@ -471,9 +519,9 @@ console.log(result);`;
                     <Zap className="h-3 w-3 mr-1" />
                     {complexity.level}
                   </Badge>
-                  {step.copyableContent?.modelConfig && (
+                  {modelConfig && (
                     <code className="bg-muted px-2 py-1 rounded text-sm">
-                      {extractValue(step.copyableContent.modelConfig)}
+                      {modelConfig}
                     </code>
                   )}
                 </div>
@@ -512,11 +560,11 @@ console.log(result);`;
                 
                 {/* Quick copy buttons for common items */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {step.copyableContent?.modelConfig && (
+                  {modelConfig && (
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => copyToClipboard(extractValue(step.copyableContent.modelConfig!), `${stepIndex}-model`)}
+                      onClick={() => copyToClipboard(modelConfig, `${stepIndex}-model`)}
                       className="justify-start"
                     >
                       {copiedIndex === `${stepIndex}-model` ? (
@@ -527,7 +575,7 @@ console.log(result);`;
                       Copy Model Config
                     </Button>
                   )}
-                  {step.copyableContent?.prompt && (
+                  {prompt && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -656,7 +704,7 @@ console.log(result);`;
             
             return (
               <Card
-                key={index}
+                key={step.id}
                 className="border-purple-200/50 dark:border-purple-800/50 overflow-hidden transition-all duration-200 hover:shadow-md"
               >
                 <CardHeader
@@ -679,8 +727,8 @@ console.log(result);`;
                       <Bot className="h-5 w-5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-base font-semibold mb-1">
-                          <span className="truncate" title={step.title}>
-                            {step.title}
+                          <span className="truncate" title={step.name}>
+                            {step.name} ({step.category})
                           </span>
                         </CardTitle>
                         <div className="flex items-center gap-2 flex-wrap">
@@ -705,15 +753,10 @@ console.log(result);`;
                             {complexity.level}
                           </Badge>
                         </div>
-                        {step.description && (
-                          <p className="text-sm text-muted-foreground mt-1 truncate" title={step.description}>
-                            {step.description}
-                          </p>
-                        )}
                       </div>
                     </div>
                     <Badge variant="secondary" className="ml-4 flex-shrink-0">
-                      Step {index + 1}
+                      Step {step.stepNumber}
                     </Badge>
                   </div>
                 </CardHeader>

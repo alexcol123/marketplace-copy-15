@@ -40,11 +40,11 @@ type StepContentProps = {
   stepIndex: number;
 };
 
-const HttpSteps = ({ workflowJson }: HttpStepsProps) => {
+const HttpSteps = ({ steps }: HttpStepsProps) => {
   const [copiedIndex, setCopiedIndex] = useState<string | null>(null);
   const [expandedSteps, setExpandedSteps] = useState(new Set<number>());
 
-  const httpSteps = workflowJson;
+  const httpSteps = steps;
 
   const copyToClipboard = async (text: string, index: string): Promise<void> => {
     try {
@@ -146,24 +146,33 @@ const HttpSteps = ({ workflowJson }: HttpStepsProps) => {
     }
   };
 
-  const generateCurlCommand = (step: HttpStepType): string => {
-    if (!step.url && !step.copyableContent?.url) return 'curl "URL_NOT_SPECIFIED"';
+  // Helper to safely stringify parameters
+  const safeStringify = (value: any): string => {
+    if (typeof value === 'string') return value;
+    if (value === null || value === undefined) return '';
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch (error) {
+      return String(value);
+    }
+  };
 
-    const method = step.method || "GET";
+  const generateCurlCommand = (step: HttpStepType): string => {
+    const url = step.parameters?.url;
+    if (!url) return 'curl "URL_NOT_SPECIFIED"';
+
+    const method = step.parameters?.method || "GET";
     let curl = `curl -X ${method}`;
 
     // Clean URL - remove leading = and handle n8n expressions
-    let cleanUrl = step.copyableContent?.url || step.url || "";
+    let cleanUrl = url;
     if (cleanUrl.startsWith("=")) {
       cleanUrl = cleanUrl.substring(1);
     }
     curl += ` "${cleanUrl}"`;
 
     // Add authentication placeholder if authentication is detected
-    if (
-      step.parameters &&
-      JSON.stringify(step.parameters).includes("authentication")
-    ) {
+    if (step.parameters?.authentication || step.credentials) {
       curl += ` \\\n  -H "Authorization: Bearer YOUR_API_KEY_HERE"`;
     }
 
@@ -174,20 +183,22 @@ const HttpSteps = ({ workflowJson }: HttpStepsProps) => {
 
     if (shouldHaveBody) {
       // Add appropriate content-type headers
-      if (step.bodyType === "json" && (step.copyableContent?.formattedJsonBody || step.copyableContent?.jsonBody)) {
+      if (step.bodyType === "json" && step.jsonBody) {
         curl += ` \\\n  -H "Content-Type: application/json"`;
 
         // Clean JSON body - remove leading =
-        let cleanJsonBody = step.copyableContent?.formattedJsonBody || step.copyableContent?.jsonBody || "";
+        let cleanJsonBody = step.jsonBody;
         if (cleanJsonBody.startsWith("=")) {
           cleanJsonBody = cleanJsonBody.substring(1);
         }
         curl += ` \\\n  -d '${cleanJsonBody}'`;
-      } else if (step.bodyType === "form" && step.copyableContent?.bodyParameters) {
+      } else if (step.bodyType === "form" && step.bodyParameters) {
         curl += ` \\\n  -H "Content-Type: application/x-www-form-urlencoded"`;
 
         try {
-          const bodyParams = JSON.parse(step.copyableContent.bodyParameters);
+          const bodyParams = typeof step.bodyParameters === 'string' 
+            ? JSON.parse(step.bodyParameters) 
+            : step.bodyParameters;
           const params = bodyParams.parameters || [];
           const formData = params
             .map((param: any) => {
@@ -207,12 +218,6 @@ const HttpSteps = ({ workflowJson }: HttpStepsProps) => {
         curl += ` \\\n  -H "Content-Type: multipart/form-data"`;
         curl += ` \\\n  -d "MULTIPART_DATA_HERE"`;
       }
-    } else if (
-      method.toUpperCase() === "GET" &&
-      (step.copyableContent?.formattedJsonBody || step.copyableContent?.bodyParameters)
-    ) {
-      // For GET requests with body data, add a warning comment
-      curl += `\n\n# WARNING: This appears to be a GET request with body data.\n# GET requests typically don't have request bodies.\n# Consider using query parameters instead:\n# ${cleanUrl}?param1=value1&param2=value2`;
     }
 
     return curl;
@@ -261,10 +266,10 @@ const HttpSteps = ({ workflowJson }: HttpStepsProps) => {
   );
 
   const StepContent = ({ step, stepIndex }: StepContentProps): JSX.Element => {
-    const hasUrl = step.copyableContent?.url;
-    const hasJsonBody = step.copyableContent?.formattedJsonBody || step.copyableContent?.jsonBody;
-    const hasBodyParameters = step.copyableContent?.bodyParameters;
-    const hasFullConfig = step.copyableContent?.fullParameters || step.parameters;
+    const hasUrl = step.parameters?.url;
+    const hasJsonBody = step.jsonBody;
+    const hasBodyParameters = step.bodyParameters;
+    const hasFullConfig = step.parameters;
     
     return (
       <div className="border-t border-primary/10">
@@ -305,9 +310,9 @@ const HttpSteps = ({ workflowJson }: HttpStepsProps) => {
                     Request Details
                   </h4>
                   <div className="flex items-center gap-3 flex-wrap">
-                    <Badge variant="outline" className={getMethodColor(step.method)}>
-                      {getMethodIcon(step.method)}
-                      <span className="ml-2">{step.method?.toUpperCase() || 'UNKNOWN'}</span>
+                    <Badge variant="outline" className={getMethodColor(step.parameters?.method)}>
+                      {getMethodIcon(step.parameters?.method)}
+                      <span className="ml-2">{step.parameters?.method?.toUpperCase() || 'UNKNOWN'}</span>
                     </Badge>
                     {step.bodyType && (
                       <Badge variant="outline" className={getBodyTypeLabel(step.bodyType).color}>
@@ -315,35 +320,28 @@ const HttpSteps = ({ workflowJson }: HttpStepsProps) => {
                       </Badge>
                     )}
                     <span className="text-sm text-muted-foreground">
-                      to {extractDomain(step.url || step.copyableContent?.url)}
+                      to {extractDomain(step.parameters?.url)}
                     </span>
                   </div>
                 </div>
 
                 {/* URL display */}
-                {(step.url || step.copyableContent?.url) && (
+                {step.parameters?.url && (
                   <div className="space-y-2">
                     <h4 className="font-medium text-sm">Endpoint URL</h4>
                     <code className="bg-muted px-3 py-2 rounded text-sm block break-all">
-                      {step.copyableContent?.url || step.url}
+                      {step.parameters.url}
                     </code>
-                  </div>
-                )}
-
-                {step.description && (
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-sm">Description</h4>
-                    <p className="text-muted-foreground text-sm">{step.description}</p>
                   </div>
                 )}
                 
                 {/* Quick copy buttons for common items */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {step.copyableContent?.url && (
+                  {step.parameters?.url && (
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => copyToClipboard(step.copyableContent?.url || "", `${stepIndex}-url`)}
+                      onClick={() => copyToClipboard(step.parameters?.url || "", `${stepIndex}-url`)}
                       className="justify-start"
                     >
                       {copiedIndex === `${stepIndex}-url` ? (
@@ -354,11 +352,11 @@ const HttpSteps = ({ workflowJson }: HttpStepsProps) => {
                       Copy URL
                     </Button>
                   )}
-                  {step.copyableContent?.method && (
+                  {step.parameters?.method && (
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => copyToClipboard(step.copyableContent?.method || "", `${stepIndex}-method`)}
+                      onClick={() => copyToClipboard(step.parameters?.method || "", `${stepIndex}-method`)}
                       className="justify-start"
                     >
                       {copiedIndex === `${stepIndex}-method` ? (
@@ -376,7 +374,7 @@ const HttpSteps = ({ workflowJson }: HttpStepsProps) => {
             {hasJsonBody && (
               <TabsContent value="body" className="mt-0">
                 <CodeBlock
-                  code={step.copyableContent?.formattedJsonBody || step.copyableContent?.jsonBody || '{}'}
+                  code={step.parsedJsonBody ? safeStringify(step.parsedJsonBody) : step.jsonBody || '{}'}
                   index={stepIndex.toString()}
                   title="Request Body"
                   language="json"
@@ -387,7 +385,7 @@ const HttpSteps = ({ workflowJson }: HttpStepsProps) => {
             {hasBodyParameters && (
               <TabsContent value="params" className="mt-0">
                 <CodeBlock
-                  code={step.copyableContent?.bodyParameters || '{}'}
+                  code={safeStringify(step.bodyParameters)}
                   index={stepIndex.toString()}
                   title="Body Parameters"
                   language="json"
@@ -420,13 +418,6 @@ const HttpSteps = ({ workflowJson }: HttpStepsProps) => {
                       <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">=</code> signs
                       have been removed (n8n-specific syntax)
                     </li>
-                    {step.method?.toUpperCase() === "GET" &&
-                      (step.copyableContent?.formattedJsonBody || step.copyableContent?.bodyParameters) && (
-                        <li className="text-red-600 dark:text-red-400 font-medium">
-                          This GET request has body data - this is unusual.
-                          Consider using query parameters instead.
-                        </li>
-                      )}
                   </ul>
                 </div>
                 <div className="relative border border-primary/10 rounded-lg overflow-hidden">
@@ -469,7 +460,7 @@ const HttpSteps = ({ workflowJson }: HttpStepsProps) => {
             {hasFullConfig && (
               <TabsContent value="config" className="mt-0">
                 <CodeBlock
-                  code={step.copyableContent?.fullParameters || step.parameters || '{}'}
+                  code={safeStringify(step.parameters)}
                   index={stepIndex.toString()}
                   title="Full Configuration"
                   language="json"
@@ -500,7 +491,7 @@ const HttpSteps = ({ workflowJson }: HttpStepsProps) => {
 
           {httpSteps.map((step: HttpStepType, index: number) => (
             <Card
-              key={index}
+              key={step.id}
               className="border-green-200/50 dark:border-green-800/50 overflow-hidden transition-all duration-200 hover:shadow-md"
             >
               <CardHeader
@@ -523,17 +514,17 @@ const HttpSteps = ({ workflowJson }: HttpStepsProps) => {
                     <Link className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <CardTitle className="text-base font-semibold flex items-center gap-2 mb-1">
-                        <span className="truncate" title={step.title}>
-                          {step.title}
+                        <span className="truncate" title={step.name}>
+                          {step.name} (HTTP Request)
                         </span>
                       </CardTitle>
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge 
                           variant="outline" 
-                          className={`font-mono text-xs ${getMethodColor(step.method)} flex-shrink-0`}
+                          className={`font-mono text-xs ${getMethodColor(step.parameters?.method)} flex-shrink-0`}
                         >
-                          {getMethodIcon(step.method)}
-                          <span className="ml-1">{step.method?.toUpperCase() || 'UNKNOWN'}</span>
+                          {getMethodIcon(step.parameters?.method)}
+                          <span className="ml-1">{step.parameters?.method?.toUpperCase() || 'UNKNOWN'}</span>
                         </Badge>
                         {step.bodyType && (
                           <Badge variant="outline" className={`text-xs ${getBodyTypeLabel(step.bodyType).color} flex-shrink-0`}>
@@ -541,24 +532,19 @@ const HttpSteps = ({ workflowJson }: HttpStepsProps) => {
                           </Badge>
                         )}
                       </div>
-                      {step.description && (
-                        <p className="text-sm text-muted-foreground mt-1 truncate" title={step.description}>
-                          {step.description}
-                        </p>
-                      )}
                       <p className="text-xs text-muted-foreground mt-1 truncate" title={
-                        step.url || step.copyableContent?.url 
-                          ? `→ ${extractDomain(step.url || step.copyableContent?.url)}` 
+                        step.parameters?.url 
+                          ? `→ ${extractDomain(step.parameters.url)}` 
                           : "No URL specified"
                       }>
-                        {step.url || step.copyableContent?.url 
-                          ? `→ ${extractDomain(step.url || step.copyableContent?.url)}` 
+                        {step.parameters?.url 
+                          ? `→ ${extractDomain(step.parameters.url)}` 
                           : "No URL specified"}
                       </p>
                     </div>
                   </div>
                   <Badge variant="secondary" className="ml-4 flex-shrink-0">
-                    Step {index + 1}
+                    Step {step.stepNumber}
                   </Badge>
                 </div>
               </CardHeader>

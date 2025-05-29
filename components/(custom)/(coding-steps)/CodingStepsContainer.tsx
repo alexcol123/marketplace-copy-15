@@ -20,59 +20,57 @@ interface CodingStepsContainerProps {
 
 // Type definitions for the step components
 export type HttpStepType = {
-  title: string;
-  description: string;
-  method: string;
-  url: string;
-  bodyType: string;
+  stepNumber: number;
+  type: string;
+  name: string;
+  id: string;
+  nodeId: string;
+  matchingId: string;
+  category: string;
+  parameters: any;
+  credentials?: any;
   jsonBody?: string;
   parsedJsonBody?: any;
   bodyParameters?: any;
-  parameters: string;
-  headers?: Record<string, any>;
-  body?: any;
-  copyableContent: {
-    url: string;
-    method: string;
-    jsonBody?: string;
-    formattedJsonBody?: string;
-    bodyParameters?: string;
-    fullParameters: string;
-  };
+  bodyType: string;
 };
 
 export type AIStepType = {
-  title: string;
+  stepNumber: number;
   type: string;
-  aiProvider: string;
+  name: string;
+  id: string;
+  nodeId: string;
+  matchingId: string;
   category: string;
-  parameters: string;
-  rawParameters?: any;
-  copyableContent: {
-    modelConfig?: string;
-    prompt?: string;
-    systemMessage?: string;
-  };
+  aiProvider: string;
+  parameters: any;
+  credentials?: any;
 };
 
 export type CodeStepType = {
-  title: string;
-  description: string;
+  stepNumber: number;
+  type: string;
+  name: string;
+  id: string;
+  nodeId: string;
+  matchingId: string;
+  category: string;
   jsCode: string;
-  copyableContent: string;
+  description: string;
 };
 
 // Props for step components
 export interface HttpStepsProps {
-  workflowJson: HttpStepType[];
+  steps: HttpStepType[];
 }
 
 export interface AIStepsProps {
-  workflowJson: AIStepType[];
+  steps: AIStepType[];
 }
 
 export interface CodingStepsProps {
-  workflowJson: CodeStepType[];
+  steps: CodeStepType[];
 }
 
 export default function CodingStepsContainer({ workflowJson }: CodingStepsContainerProps) {
@@ -96,11 +94,11 @@ export default function CodingStepsContainer({ workflowJson }: CodingStepsContai
       setExtractedData(processed);
       
       // Auto-select first available step type
-      if (processed.data.aiSteps.length > 0) {
+      if (processed.extracted.aiNodes.length > 0) {
         setCurrentStepType('ai');
-      } else if (processed.data.codeSteps.length > 0) {
+      } else if (processed.extracted.codeNodes.length > 0) {
         setCurrentStepType('coding');
-      } else if (processed.data.httpSteps.length > 0) {
+      } else if (processed.extracted.httpNodes.length > 0) {
         setCurrentStepType('http');
       }
     } catch (error) {
@@ -141,20 +139,20 @@ export default function CodingStepsContainer({ workflowJson }: CodingStepsContai
     {
       id: 'ai',
       title: 'AI Integration',
-      count: extractedData?.data.aiSteps.length || 0,
-      available: extractedData?.data.aiSteps.length > 0
+      count: extractedData?.extracted.aiNodes.length || 0,
+      available: extractedData?.extracted.aiNodes.length > 0
     },
     {
       id: 'coding',
       title: 'Custom Code',
-      count: extractedData?.data.codeSteps.length || 0,
-      available: extractedData?.data.codeSteps.length > 0
+      count: extractedData?.extracted.codeNodes.length || 0,
+      available: extractedData?.extracted.codeNodes.length > 0
     },
     {
       id: 'http',
       title: 'API Requests',
-      count: extractedData?.data.httpSteps.length || 0,
-      available: extractedData?.data.httpSteps.length > 0
+      count: extractedData?.extracted.httpNodes.length || 0,
+      available: extractedData?.extracted.httpNodes.length > 0
     }
   ];
 
@@ -176,11 +174,11 @@ export default function CodingStepsContainer({ workflowJson }: CodingStepsContai
   const renderCurrentStep = () => {
     switch (currentStepType) {
       case 'ai':
-        return <AISteps workflowJson={extractedData.data.aiSteps} />;
+        return <AISteps steps={extractedData.extracted.aiNodes} />;
       case 'coding':
-        return <CodingSteps workflowJson={extractedData.data.codeSteps} />;
+        return <CodingSteps steps={extractedData.extracted.codeNodes} />;
       case 'http':
-        return <HttpSteps workflowJson={extractedData.data.httpSteps} />;
+        return <HttpSteps steps={extractedData.extracted.httpNodes} />;
       case 'overview':
       default:
         return (
@@ -198,11 +196,11 @@ export default function CodingStepsContainer({ workflowJson }: CodingStepsContai
                 <h3 className="font-semibold text-primary mb-2 flex items-center gap-2">
                   🤖 AI Integration
                 </h3>
-                <p className="text-2xl font-bold mb-1">{extractedData.data.aiSteps.length}</p>
+                <p className="text-2xl font-bold mb-1">{extractedData.extracted.aiNodes.length}</p>
                 <p className="text-sm text-muted-foreground">
                   OpenAI, Claude, and other AI service integrations
                 </p>
-                {extractedData.data.aiSteps.length > 0 && (
+                {extractedData.extracted.aiNodes.length > 0 && (
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -218,11 +216,11 @@ export default function CodingStepsContainer({ workflowJson }: CodingStepsContai
                 <h3 className="font-semibold text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
                   💻 Custom Code
                 </h3>
-                <p className="text-2xl font-bold mb-1">{extractedData.data.codeSteps.length}</p>
+                <p className="text-2xl font-bold mb-1">{extractedData.extracted.codeNodes.length}</p>
                 <p className="text-sm text-muted-foreground">
                   JavaScript functions and custom logic
                 </p>
-                {extractedData.data.codeSteps.length > 0 && (
+                {extractedData.extracted.codeNodes.length > 0 && (
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -238,11 +236,11 @@ export default function CodingStepsContainer({ workflowJson }: CodingStepsContai
                 <h3 className="font-semibold text-blue-700 dark:text-blue-400 mb-2 flex items-center gap-2">
                   🌐 HTTP APIs
                 </h3>
-                <p className="text-2xl font-bold mb-1">{extractedData.data.httpSteps.length}</p>
+                <p className="text-2xl font-bold mb-1">{extractedData.extracted.httpNodes.length}</p>
                 <p className="text-sm text-muted-foreground">
                   API calls and webhook integrations
                 </p>
-                {extractedData.data.httpSteps.length > 0 && (
+                {extractedData.extracted.httpNodes.length > 0 && (
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -258,11 +256,11 @@ export default function CodingStepsContainer({ workflowJson }: CodingStepsContai
             <div className="bg-card p-6 rounded-lg border">
               <h3 className="font-semibold mb-4">Complete Workflow Breakdown</h3>
               <div className="space-y-2">
-                {extractedData.data.allSteps.map((step: any) => (
-                  <div key={step.step} className="flex items-center justify-between p-3 bg-muted/20 rounded-md">
+                {extractedData.extracted.allSteps.map((step: any) => (
+                  <div key={step.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-md">
                     <div className="flex items-center gap-3">
                       <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                        {step.step}
+                        {step.stepNumber}
                       </span>
                       <div>
                         <p className="font-medium">{step.name}</p>
