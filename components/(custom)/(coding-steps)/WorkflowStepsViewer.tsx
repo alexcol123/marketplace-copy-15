@@ -21,6 +21,9 @@ import {
   ChevronRight,
   Zap,
   Check,
+  CheckCheck,
+  Trophy,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -42,9 +45,8 @@ export default function WorkflowStepsViewer({
   const [viewedSteps, setViewedSteps] = useState<Set<string>>(new Set());
   const [expandedStepId, setExpandedStepId] = useState<string | null>(null);
 
-
-
   console.log("WorkflowStepsViewer - workflowJson:", workflowJson);
+
   // Handle step expansion tracking
   const handleStepToggleExpanded = (stepId: string, isExpanded: boolean) => {
     if (isExpanded) {
@@ -65,12 +67,19 @@ export default function WorkflowStepsViewer({
     }
   };
 
+  // Handle marking all steps as completed
+  const handleMarkAllCompleted = () => {
+    const allStepIds = displayedSteps.map(step => step.id);
+    setViewedSteps(new Set(allStepIds));
+    // Close any expanded step
+    setExpandedStepId(null);
+  };
+
   // Get ordered steps and stats
   const orderedSteps = getWorkflowStepsInOrder(workflowJson);
   const stats = getWorkflowStats(workflowJson);
 
   console.log("WorkflowStepsViewer - orderedSteps:", orderedSteps);
-  //console.log("WorkflowStepsViewer - stats:", stats);
 
   // Always show all steps - no more limiting
   const displayedSteps = showDisconnected 
@@ -78,6 +87,10 @@ export default function WorkflowStepsViewer({
     : orderedSteps.filter((step) => !step.isDisconnected);
 
   const disconnectedSteps = orderedSteps.filter((step) => step.isDisconnected);
+
+  // Check if all steps are completed
+  const allStepsCompleted = displayedSteps.length > 0 && displayedSteps.every(step => viewedSteps.has(step.id));
+  const completionPercentage = displayedSteps.length > 0 ? Math.round((viewedSteps.size / displayedSteps.length) * 100) : 0;
 
   if (!orderedSteps || orderedSteps.length === 0) {
     return (
@@ -126,7 +139,12 @@ export default function WorkflowStepsViewer({
             
             {/* Progress indicator for viewed steps */}
             {viewedSteps.size > 0 && (
-              <Badge className="text-xs bg-green-500 hover:bg-green-600 text-white">
+              <Badge className={cn("text-xs text-white", 
+                allStepsCompleted 
+                  ? "bg-green-500 hover:bg-green-600" 
+                  : "bg-blue-500 hover:bg-blue-600"
+              )}>
+                {allStepsCompleted && <Trophy className="h-3 w-3 mr-1" />}
                 {viewedSteps.size}/{displayedSteps.length} viewed
               </Badge>
             )}
@@ -227,6 +245,72 @@ export default function WorkflowStepsViewer({
             );
           })}
         </div>
+
+        {/* Mark All Completed Section */}
+        {displayedSteps.length > 0 && (
+          <div className="p-4 border-t bg-gradient-to-r from-muted/30 to-transparent">
+            {!allStepsCompleted ? (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-primary animate-pulse"></div>
+                    <span className="text-sm font-medium">
+                      Progress: {viewedSteps.size} of {displayedSteps.length} steps completed
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {completionPercentage}%
+                  </Badge>
+                </div>
+
+                <Button
+                  onClick={handleMarkAllCompleted}
+                  className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md hover:shadow-lg transition-all duration-200"
+                  size="sm"
+                >
+                  <CheckCheck className="h-4 w-4" />
+                  Mark All Completed
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                    <div className="h-12 w-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <Trophy className="h-6 w-6 text-green-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">🎉 Workflow Mastered!</h3>
+                      <p className="text-sm text-muted-foreground">
+                        You've successfully reviewed all {displayedSteps.length} workflow steps
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 mt-2">
+                    <Sparkles className="h-4 w-4 text-amber-500" />
+                    <span className="text-sm text-muted-foreground">
+                      You're now ready to implement this workflow!
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Progress bar */}
+            <div className="mt-3 w-full bg-muted/30 rounded-full h-2 overflow-hidden">
+              <div 
+                className={cn(
+                  "h-full rounded-full transition-all duration-700 ease-in-out",
+                  allStepsCompleted 
+                    ? "bg-gradient-to-r from-green-500 to-green-400" 
+                    : "bg-gradient-to-r from-primary to-primary/70"
+                )}
+                style={{ width: `${completionPercentage}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
 
         {/* Disconnected Steps Warning */}
         {disconnectedSteps.length > 0 && !showDisconnected && (

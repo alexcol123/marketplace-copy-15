@@ -1,6 +1,8 @@
 // # // to push to db   npx prisma db push && npx prisma generate
 // # // to open studio npx prisma studio
 
+
+
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
@@ -12,37 +14,39 @@ generator client {
 }
 
 model Profile {
-  id                String             @id @default(uuid())
-  clerkId           String             @unique
+  id                String               @id @default(uuid())
+  clerkId           String               @unique
   firstName         String
   lastName          String
-  username          String             @unique
+  username          String               @unique
   email             String
   profileImage      String
   bio               String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
   Workflow          Workflow[]
-  WorkflowDownloads WorkflowDownload[] // Add this relation
+  WorkflowDownloads WorkflowDownload[]
+  completions       WorkflowCompletion[] // Fixed relation name
 }
 
 model Workflow {
-  id                String             @id @default(uuid())
+  id                String               @id @default(uuid())
   title             String
-  content           String             @db.Text
+  content           String               @db.Text
   workflowImage     String
   videoUrl          String?
-  slug              String             @unique
+  slug              String               @unique
   authorId          String
-  author            Profile            @relation(fields: [authorId], references: [clerkId], onDelete: Cascade)
+  author            Profile              @relation(fields: [authorId], references: [clerkId], onDelete: Cascade)
   category          CategoryType
-  viewCount         Int                @default(0)
-  workFlowJson      Json               @default("{}")
+  viewCount         Int                  @default(0)
+  workFlowJson      Json                 @default("{}")
   steps             Json? // Optional JSON array of step text strings
-  verifiedAndTested Boolean            @default(false) // New field with default value of false
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  downloads         WorkflowDownload[] // Add this relation
+  verifiedAndTested Boolean              @default(false) // New field with default value of false
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  downloads         WorkflowDownload[]
+  completions       WorkflowCompletion[] // Fixed relation name
 }
 
 model WorkflowDownload {
@@ -54,6 +58,17 @@ model WorkflowDownload {
   downloadedAt DateTime @default(now())
 
   @@unique([workflowId, userId]) // Optional: prevent duplicate download records
+}
+
+model WorkflowCompletion {
+  id          String   @id @default(uuid())
+  workflowId  String
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  userId      String
+  user        Profile  @relation(fields: [userId], references: [clerkId], onDelete: Cascade)
+  completedAt DateTime @default(now())
+
+  @@unique([workflowId, userId]) // Prevent duplicate completions - one completion per user per workflow
 }
 
 // Predefined categories

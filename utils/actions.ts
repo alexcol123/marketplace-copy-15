@@ -821,3 +821,339 @@ export const getUserProfileWithWorkflows = async (username: string) => {
     return null;
   }
 };
+
+// Record workflow completion for current user
+export const recordWorkflowCompletion = async (workflowId: string) => {
+  try {
+    const user = await getAuthUser();
+
+    // Check if workflow exists
+    const workflow = await db.workflow.findUnique({
+      where: { id: workflowId },
+      select: { id: true, title: true },
+    });
+
+    if (!workflow) {
+      return {
+        success: false,
+        message: "Workflow not found",
+      };
+    }
+
+    // Check if user already completed this workflow
+    const existingCompletion = await db.workflowCompletion.findUnique({
+      where: {
+        workflowId_userId: {
+          workflowId,
+          userId: user.id,
+        },
+      },
+    });
+
+    if (existingCompletion) {
+      return {
+        success: false,
+        message: "You have already completed this workflow",
+        completedAt: existingCompletion.completedAt,
+      };
+    }
+
+    // Create completion record
+    const completion = await db.workflowCompletion.create({
+      data: {
+        workflowId,
+        userId: user.id,
+      },
+      include: {
+        workflow: {
+          select: {
+            title: true,
+          },
+        },
+      },
+    });
+
+    return {
+      success: true,
+      message: `Workflow "${workflow.title}" marked as completed!`,
+      completedAt: completion.completedAt,
+    };
+  } catch (error) {
+    console.error("Error recording workflow completion:", error);
+    return {
+      success: false,
+      message: "Failed to record completion",
+    };
+  }
+};
+
+// Check if current user completed a specific workflow
+export const checkWorkflowCompletion = async (workflowId: string) => {
+  try {
+    const user = await getAuthUser();
+
+    const completion = await db.workflowCompletion.findUnique({
+      where: {
+        workflowId_userId: {
+          workflowId,
+          userId: user.id,
+        },
+      },
+      select: {
+        completedAt: true,
+      },
+    });
+
+    return {
+      isCompleted: !!completion,
+      completedAt: completion?.completedAt || null,
+    };
+  } catch (error) {
+    console.error("Error checking workflow completion:", error);
+    return {
+      isCompleted: false,
+      completedAt: null,
+    };
+  }
+};
+
+// Get all completions for current user
+export const fetchUserCompletions = async () => {
+  try {
+    const user = await getAuthUser();
+
+    const completions = await db.workflowCompletion.findMany({
+      where: {
+        userId: user.id,
+      },
+      include: {
+        workflow: {
+          select: {
+            id: true,
+            title: true,
+            category: true,
+            slug: true,
+            workflowImage: true,
+            author: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        completedAt: "desc",
+      },
+    });
+
+    return completions;
+  } catch (error) {
+    console.error("Error fetching user completions:", error);
+    return [];
+  }
+};
+
+// Get completion statistics for current user
+export const getUserCompletionStats = async () => {
+  try {
+    const user = await getAuthUser();
+
+    // Get total completion count
+    const totalCompletions = await db.workflowCompletion.count({
+      where: {
+        userId: user.id,
+      },
+    });
+
+    // Get completions by category
+    const completionsByCategory = await db.workflowCompletion.groupBy({
+      by: ["workflowId"],
+      where: {
+        userId: user.id,
+      },
+      _count: {
+        workflowId: true,
+      },
+      include: {
+        workflow: {
+          select: {
+            category: true,
+          },
+        },
+      },
+    });
+
+    // Get recent completions (last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const recentCompletions = await db.workflowCompletion.count({
+      where: {
+        userId: user.id,
+        completedAt: {
+          gte: sevenDaysAgo,
+        },
+      },
+    });
+
+    // Get most recent completion
+    const latestCompletion = await db.workflowCompletion.findFirst({
+      where: {
+        userId: user.id,
+      },
+      include: {
+        workflow: {
+          select: {
+            title: true,
+            slug: true,
+          },
+        },
+      },
+      orderBy: {
+        completedAt: "desc",
+      },
+    });
+
+    return {
+      totalCompletions,
+      recentCompletions,
+      latestCompletion,
+      // You can add category breakdown here if needed
+    };
+  } catch (error) {
+    console.error("Error fetching user completion stats:", error);
+    return {
+      totalCompletions: 0,
+      recentCompletions: 0,
+      latestCompletion: null,
+    };
+  }
+};
+
+// Remove workflow completion (if user wants to "uncomplete" it)
+export const removeWorkflowCompletion = async (workflowId: string) => {
+  try {
+    const user = await getAuthUser();
+
+    const deletedCompletion = await db.workflowCompletion.delete({
+      where: {
+        workflowId_userId: {
+          workflowId,
+          userId: user.id,
+        },
+      },
+      include: {
+        workflow: {
+          select: {
+            title: true,
+          },
+        },
+      },
+    });
+
+    return {
+      success: true,
+      message: `Completion status removed for "${deletedCompletion.workflow.title}"`,
+    };
+  } catch (error) {
+    console.error("Error removing workflow completion:", error);
+    return {
+      success: false,
+      message: "Failed to remove completion status",
+    };
+  }
+};
+
+// Get global completion leaderboard (top users by completion count)
+export const getCompletionLeaderboard = async (limit: number = 10) => {
+  try {
+    const leaderboard = await db.workflowCompletion.groupBy({
+      by: ["userId"],
+      _count: {
+        userId: true,
+      },
+      orderBy: {
+        _count: {
+          userId: "desc",
+        },
+      },
+      take: limit,
+    });
+
+    // Get user details for the leaderboard
+    const userIds = leaderboard.map((entry) => entry.userId);
+    const users = await db.profile.findMany({
+      where: {
+        clerkId: {
+          in: userIds,
+        },
+      },
+      select: {
+        clerkId: true,
+        firstName: true,
+        lastName: true,
+        username: true,
+        profileImage: true,
+      },
+    });
+
+    // Combine completion counts with user data
+    const leaderboardWithUsers = leaderboard.map((entry) => {
+      const user = users.find((u) => u.clerkId === entry.userId);
+      return {
+        userId: entry.userId,
+        completionCount: entry._count.userId,
+        user: user || null,
+      };
+    });
+
+    return leaderboardWithUsers;
+  } catch (error) {
+    console.error("Error fetching completion leaderboard:", error);
+    return [];
+  }
+};
+
+// Get user's ranking position
+export const getUserCompletionRank = async () => {
+  try {
+    const user = await getAuthUser();
+
+    // Get user's completion count
+    const userCompletionCount = await db.workflowCompletion.count({
+      where: {
+        userId: user.id,
+      },
+    });
+
+    // Get count of users with more completions
+    const usersWithMoreCompletions = await db.workflowCompletion.groupBy({
+      by: ["userId"],
+      _count: {
+        userId: true,
+      },
+      having: {
+        userId: {
+          _count: {
+            gt: userCompletionCount,
+          },
+        },
+      },
+    });
+
+    const rank = usersWithMoreCompletions.length + 1;
+
+    return {
+      rank,
+      completionCount: userCompletionCount,
+    };
+  } catch (error) {
+    console.error("Error fetching user completion rank:", error);
+    return {
+      rank: null,
+      completionCount: 0,
+    };
+  }
+};
