@@ -26,9 +26,11 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import MarkCompletedButton from "./MarkCompletedButton";
 
 interface WorkflowStepsViewerProps {
   workflowJson: WorkflowJson | any;
+  workflowId: string;
   className?: string;
   showStats?: boolean;
   maxVisibleSteps?: number;
@@ -36,6 +38,7 @@ interface WorkflowStepsViewerProps {
 
 export default function WorkflowStepsViewer({
   workflowJson,
+  workflowId,
   className,
   showStats = true,
   maxVisibleSteps = 10,
@@ -311,6 +314,8 @@ export default function WorkflowStepsViewer({
             </div>
           </div>
         )}
+
+        <MarkCompletedButton  workflowId={workflowId}/>
 
         {/* Disconnected Steps Warning */}
         {disconnectedSteps.length > 0 && !showDisconnected && (

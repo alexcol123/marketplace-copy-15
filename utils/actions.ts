@@ -822,8 +822,15 @@ export const getUserProfileWithWorkflows = async (username: string) => {
   }
 };
 
-// Record workflow completion for current user
+
+// COMPLETION TRACKING FOR STUDENTS  --------------------------------------------------------------------------
+
+
+// Record workflow completion for current user ==================>
 export const recordWorkflowCompletion = async (workflowId: string) => {
+
+
+  console.log("Recording completion for workflow:", workflowId);
   try {
     const user = await getAuthUser();
 

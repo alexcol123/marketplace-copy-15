@@ -37,6 +37,7 @@ import EmptyList from "@/components/(custom)/EmptyList";
 import YouTubeVideoPlayer from "@/components/(custom)/(video)/YoutubeVideoPlayer";
 
 import WorkflowStepsViewer from "@/components/(custom)/(coding-steps)/WorkflowStepsViewer";
+
 // Import the YouTube player component
 
 type WorkflowWithAuthor = Workflow & {
@@ -100,10 +101,14 @@ const SingleWorkflowPage = async ({
 
   const result = await fetchSingleWorkflow(slug);
 
+
+
   // Check if result is an error response
   if (!result || isErrorResponse(result)) {
     return notFound();
   }
+
+  const workflowId = result.id;
 
   // At this point, TypeScript knows result must be a WorkflowWithAuthor
   const workflow = result as WorkflowWithAuthor;
@@ -433,6 +438,8 @@ const SingleWorkflowPage = async ({
         </section>
       )}
 
+      {/* tutorial sections */}
+
       {workflow.workFlowJson && (
         <section className="mb-14">
           <h2 className="text-2xl font-semibold mb-6 text-primary text-center">
@@ -446,6 +453,8 @@ const SingleWorkflowPage = async ({
           <div className="max-w-4xl mx-auto">
             <WorkflowStepsViewer
               workflowJson={workflow.workFlowJson}
+              workflowId={workflowId} // ADD THIS
+              workflowTitle={workflow.title} // ADD THIS
               showStats={true}
               showNodeTypes={true}
               maxVisibleSteps={8}
