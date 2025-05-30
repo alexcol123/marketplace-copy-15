@@ -1,3 +1,4 @@
+// utils/constants.tsx
 // Define types for template categories
 
 import {
@@ -18,8 +19,17 @@ import {
 import { BsGraphUp, BsThreeDots, BsLifePreserver } from "react-icons/bs";
 import { GiMoneyStack } from "react-icons/gi";
 import type { IconType } from "react-icons"; // Import IconType for better typing
-import { ArrowBigLeft, ArrowLeft, CircleArrowLeft, CloudDownload, LayoutDashboard, List, PlusCircle, User } from "lucide-react";
-
+import { 
+  ArrowBigLeft, 
+  ArrowLeft, 
+  CircleArrowLeft, 
+  CloudDownload, 
+  LayoutDashboard, 
+  List, 
+  PlusCircle, 
+  User,
+  Trophy
+} from "lucide-react";
 
 export type NavItem = {
   name: string;
@@ -28,22 +38,18 @@ export type NavItem = {
 };
 
 export const navigation: NavItem[] = [
-
-  
   { name: "Back to Workflows", href: "/", icon: ArrowBigLeft },
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "My Workflows", href: "/dashboard/wf", icon: List },
   { name: "My Profile", href: "/dashboard/profile", icon: User },
   { name: "My Downloads", href: "/dashboard/mydownloads", icon: CloudDownload },
+  { name: "My Tutorial Completions", href: "/dashboard/mycompletions", icon: Trophy },
   {
     name: "Create Workflow",
     href: "/dashboard/wf/create",
     icon: PlusCircle,
   }
 ];
-
-
-
 
 interface CategoryType {
   label: string;
