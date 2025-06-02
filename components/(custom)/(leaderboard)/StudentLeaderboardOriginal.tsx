@@ -16,498 +16,17 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 
-
-export const mockTopStudents = [
-  {
-    userId: "user_1",
-    completionCount: 47,
-    user: {
-      id: "user_1",
-      firstName: "Sarah",
-      lastName: "Johnson",
-      username: "sarah_codes",
-      email: "sarah@example.com",
-      profileImage: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
-      createdAt: new Date("2024-01-15"),
-      updatedAt: new Date("2024-12-15")
-    }
-  },
-  {
-    userId: "user_2", 
-    completionCount: 42,
-    user: {
-      id: "user_2",
-      firstName: "Marcus",
-      lastName: "Chen",
-      username: "marcus_automates",
-      email: "marcus@example.com",
-      profileImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-      createdAt: new Date("2024-02-01"),
-      updatedAt: new Date("2024-12-14")
-    }
-  },
-  {
-    userId: "user_3",
-    completionCount: 38,
-    user: {
-      id: "user_3", 
-      firstName: "Elena",
-      lastName: "Rodriguez",
-      username: "elena_learns",
-      email: "elena@example.com",
-      profileImage: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
-      createdAt: new Date("2024-01-20"),
-      updatedAt: new Date("2024-12-13")
-    }
-  },
-  {
-    userId: "user_4",
-    completionCount: 35,
-    user: {
-      id: "user_4",
-      firstName: "David",
-      lastName: "Kim", 
-      username: "david_workflows",
-      email: "david@example.com",
-      profileImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-      createdAt: new Date("2024-02-10"),
-      updatedAt: new Date("2024-12-12")
-    }
-  },
-  {
-    userId: "user_5",
-    completionCount: 32,
-    user: {
-      id: "user_5",
-      firstName: "Priya",
-      lastName: "Patel",
-      username: "priya_automation",
-      email: "priya@example.com",
-      profileImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face",
-      createdAt: new Date("2024-03-01"),
-      updatedAt: new Date("2024-12-11")
-    }
-  },
-  {
-    userId: "user_6",
-    completionCount: 28,
-    user: {
-      id: "user_6",
-      firstName: "James",
-      lastName: "Wilson",
-      username: "james_tech",
-      email: "james@example.com", 
-      profileImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face",
-      createdAt: new Date("2024-03-15"),
-      updatedAt: new Date("2024-12-10")
-    }
-  },
-  {
-    userId: "user_7",
-    completionCount: 25,
-    user: {
-      id: "user_7",
-      firstName: "Sofia",
-      lastName: "Andersson",
-      username: "sofia_n8n",
-      email: "sofia@example.com",
-      profileImage: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=150&h=150&fit=crop&crop=face",
-      createdAt: new Date("2024-04-01"),
-      updatedAt: new Date("2024-12-09")
-    }
-  },
-  {
-    userId: "user_8", 
-    completionCount: 22,
-    user: {
-      id: "user_8",
-      firstName: "Ahmed",
-      lastName: "Hassan",
-      username: "ahmed_flows",
-      email: "ahmed@example.com",
-      profileImage: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face",
-      createdAt: new Date("2024-04-15"),
-      updatedAt: new Date("2024-12-08")
-    }
-  },
-  {
-    userId: "user_9",
-    completionCount: 19,
-    user: {
-      id: "user_9",
-      firstName: "Lisa",
-      lastName: "Thompson",
-      username: "lisa_learning",
-      email: "lisa@example.com",
-      profileImage: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face",
-      createdAt: new Date("2024-05-01"),
-      updatedAt: new Date("2024-12-07")
-    }
-  },
-  {
-    userId: "user_10",
-    completionCount: 16,
-    user: {
-      id: "user_10",
-      firstName: "Carlos",
-      lastName: "Mendoza",
-      username: "carlos_auto",
-      email: "carlos@example.com",
-      profileImage: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=150&h=150&fit=crop&crop=face",
-      createdAt: new Date("2024-05-15"),
-      updatedAt: new Date("2024-12-06")
-    }
-  }
-];
-
-// Mock function for getRecentCompletionLeaderboards()
-export const mockRecentCompletionData = {
-  today: [
-    {
-      userId: "user_2",
-      completionCount: 8,
-      user: {
-        id: "user_2",
-        firstName: "Marcus",
-        lastName: "Chen", 
-        username: "marcus_automates",
-        profileImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_1",
-      completionCount: 6,
-      user: {
-        id: "user_1",
-        firstName: "Sarah",
-        lastName: "Johnson",
-        username: "sarah_codes",
-        profileImage: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_5",
-      completionCount: 5,
-      user: {
-        id: "user_5",
-        firstName: "Priya",
-        lastName: "Patel", 
-        username: "priya_automation",
-        profileImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_3",
-      completionCount: 4,
-      user: {
-        id: "user_3",
-        firstName: "Elena",
-        lastName: "Rodriguez",
-        username: "elena_learns",
-        profileImage: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_7",
-      completionCount: 3,
-      user: {
-        id: "user_7",
-        firstName: "Sofia",
-        lastName: "Andersson",
-        username: "sofia_n8n",
-        profileImage: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_4",
-      completionCount: 3,
-      user: {
-        id: "user_4",
-        firstName: "David",
-        lastName: "Kim",
-        username: "david_workflows", 
-        profileImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_8",
-      completionCount: 2,
-      user: {
-        id: "user_8",
-        firstName: "Ahmed",
-        lastName: "Hassan",
-        username: "ahmed_flows",
-        profileImage: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_9",
-      completionCount: 2,
-      user: {
-        id: "user_9",
-        firstName: "Lisa",
-        lastName: "Thompson",
-        username: "lisa_learning",
-        profileImage: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_6",
-      completionCount: 1,
-      user: {
-        id: "user_6",
-        firstName: "James",
-        lastName: "Wilson",
-        username: "james_tech",
-        profileImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_10",
-      completionCount: 1,
-      user: {
-        id: "user_10",
-        firstName: "Carlos",
-        lastName: "Mendoza",
-        username: "carlos_auto",
-        profileImage: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=150&h=150&fit=crop&crop=face"
-      }
-    }
-  ],
-  week: [
-    {
-      userId: "user_1",
-      completionCount: 23,
-      user: {
-        id: "user_1",
-        firstName: "Sarah",
-        lastName: "Johnson",
-        username: "sarah_codes",
-        profileImage: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_3",
-      completionCount: 19,
-      user: {
-        id: "user_3",
-        firstName: "Elena",
-        lastName: "Rodriguez",
-        username: "elena_learns",
-        profileImage: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_2",
-      completionCount: 17,
-      user: {
-        id: "user_2",
-        firstName: "Marcus",
-        lastName: "Chen",
-        username: "marcus_automates",
-        profileImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_5",
-      completionCount: 15,
-      user: {
-        id: "user_5",
-        firstName: "Priya",
-        lastName: "Patel",
-        username: "priya_automation",
-        profileImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_4",
-      completionCount: 13,
-      user: {
-        id: "user_4",
-        firstName: "David",
-        lastName: "Kim",
-        username: "david_workflows",
-        profileImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_7",
-      completionCount: 11,
-      user: {
-        id: "user_7",
-        firstName: "Sofia",
-        lastName: "Andersson",
-        username: "sofia_n8n",
-        profileImage: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_6",
-      completionCount: 9,
-      user: {
-        id: "user_6",
-        firstName: "James",
-        lastName: "Wilson",
-        username: "james_tech",
-        profileImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_8",
-      completionCount: 8,
-      user: {
-        id: "user_8",
-        firstName: "Ahmed",
-        lastName: "Hassan",
-        username: "ahmed_flows",
-        profileImage: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_9",
-      completionCount: 6,
-      user: {
-        id: "user_9",
-        firstName: "Lisa",
-        lastName: "Thompson",
-        username: "lisa_learning",
-        profileImage: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_10",
-      completionCount: 4,
-      user: {
-        id: "user_10",
-        firstName: "Carlos",
-        lastName: "Mendoza",
-        username: "carlos_auto",
-        profileImage: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=150&h=150&fit=crop&crop=face"
-      }
-    }
-  ],
-  month: [
-    {
-      userId: "user_1",
-      completionCount: 47,
-      user: {
-        id: "user_1",
-        firstName: "Sarah",
-        lastName: "Johnson",
-        username: "sarah_codes",
-        profileImage: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_2",
-      completionCount: 42,
-      user: {
-        id: "user_2",
-        firstName: "Marcus",
-        lastName: "Chen",
-        username: "marcus_automates",
-        profileImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_3",
-      completionCount: 38,
-      user: {
-        id: "user_3",
-        firstName: "Elena",
-        lastName: "Rodriguez",
-        username: "elena_learns",
-        profileImage: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_4",
-      completionCount: 35,
-      user: {
-        id: "user_4",
-        firstName: "David",
-        lastName: "Kim",
-        username: "david_workflows",
-        profileImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_5",
-      completionCount: 32,
-      user: {
-        id: "user_5",
-        firstName: "Priya",
-        lastName: "Patel",
-        username: "priya_automation",
-        profileImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_6",
-      completionCount: 28,
-      user: {
-        id: "user_6",
-        firstName: "James",
-        lastName: "Wilson",
-        username: "james_tech",
-        profileImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_7",
-      completionCount: 25,
-      user: {
-        id: "user_7",
-        firstName: "Sofia",
-        lastName: "Andersson",
-        username: "sofia_n8n",
-        profileImage: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_8",
-      completionCount: 22,
-      user: {
-        id: "user_8",
-        firstName: "Ahmed",
-        lastName: "Hassan",
-        username: "ahmed_flows",
-        profileImage: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_9",
-      completionCount: 19,
-      user: {
-        id: "user_9",
-        firstName: "Lisa",
-        lastName: "Thompson",
-        username: "lisa_learning",
-        profileImage: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face"
-      }
-    },
-    {
-      userId: "user_10",
-      completionCount: 16,
-      user: {
-        id: "user_10",
-        firstName: "Carlos",
-        lastName: "Mendoza",
-        username: "carlos_auto",
-        profileImage: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=150&h=150&fit=crop&crop=face"
-      }
-    }
-  ]
-};
-
-
-
 export default async function StudentsLeaderboard() {
   // Fetch completion leaderboards
-  const topStudents = mockTopStudents;
-  const recentCompletionData = mockRecentCompletionData;
+  const topStudents = await getCompletionLeaderboard(10);
+  const recentCompletionData = await getRecentCompletionLeaderboards();
 
-  const hasData = true; // Always true for testing
+  // Check if we have data to display
+  const hasData =
+    topStudents.length > 0 ||
+    recentCompletionData?.today?.length > 0 ||
+    recentCompletionData?.week?.length > 0 ||
+    recentCompletionData?.month?.length > 0;
 
   if (!hasData) {
     return (
@@ -517,9 +36,7 @@ export default async function StudentsLeaderboard() {
           <div className="w-16 h-16 mx-auto mb-6 bg-primary/10 rounded-full flex items-center justify-center">
             <GraduationCap className="h-8 w-8 text-primary" />
           </div>
-          <h2 className="text-2xl font-semibold mb-3">
-            No Learning Data Yet
-          </h2>
+          <h2 className="text-2xl font-semibold mb-3">No Learning Data Yet</h2>
           <p className="text-muted-foreground mb-6">
             As students complete tutorials, learning statistics and leaderboards
             will become available here.
@@ -583,10 +100,7 @@ export default async function StudentsLeaderboard() {
             <TabsTrigger value="today" className="flex items-center gap-2">
               <Flame className="h-4 w-4" />
               <span className="hidden sm:inline">Today</span>
-              <Badge
-                variant="destructive"
-                className="ml-1 h-5 px-1.5 text-xs"
-              >
+              <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">
                 HOT
               </Badge>
             </TabsTrigger>
@@ -818,8 +332,7 @@ export default async function StudentsLeaderboard() {
                             </div>
 
                             <h4 className="font-bold mb-1">
-                              {student.user?.firstName}{" "}
-                              {student.user?.lastName}
+                              {student.user?.firstName} {student.user?.lastName}
                             </h4>
                             <p className="text-xs text-muted-foreground mb-2">
                               @{student.user?.username}
@@ -960,8 +473,7 @@ export default async function StudentsLeaderboard() {
                             </div>
 
                             <h4 className="font-bold mb-1">
-                              {student.user?.firstName}{" "}
-                              {student.user?.lastName}
+                              {student.user?.firstName} {student.user?.lastName}
                             </h4>
                             <p className="text-xs text-muted-foreground mb-2">
                               @{student.user?.username}
@@ -1058,17 +570,12 @@ export default async function StudentsLeaderboard() {
                                     : "bg-cyan-500 text-white"
                                 }`}
                               >
-                                {index === 0
-                                  ? "🏆"
-                                  : index === 1
-                                  ? "🥈"
-                                  : "🥉"}
+                                {index === 0 ? "🏆" : index === 1 ? "🥈" : "🥉"}
                               </div>
                             </div>
 
                             <h4 className="font-bold mb-1">
-                              {student.user?.firstName}{" "}
-                              {student.user?.lastName}
+                              {student.user?.firstName} {student.user?.lastName}
                             </h4>
                             <p className="text-xs text-muted-foreground mb-2">
                               @{student.user?.username}
