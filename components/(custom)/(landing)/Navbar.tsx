@@ -91,6 +91,9 @@ const Navbar = () => {
                 <span>Leaderboard</span>
               </Link>
             </Button>
+
+      
+            
             
             <ModeToggle />
 

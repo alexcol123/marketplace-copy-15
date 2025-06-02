@@ -709,6 +709,7 @@ export const getLeaderboardData = async (): Promise<LeaderboardData> => {
       topDownloadedWorkflows: topDownloadedWorkflows.map((workflow) => ({
         id: workflow.slug, // Using slug as ID for URL construction
         title: workflow.title,
+        slug: workflow.slug,
         authorName: `${workflow.author.firstName} ${workflow.author.lastName}`,
         authorProfileImage: workflow.author.profileImage,
         _count: {
@@ -822,14 +823,10 @@ export const getUserProfileWithWorkflows = async (username: string) => {
   }
 };
 
-
 // COMPLETION TRACKING FOR STUDENTS  --------------------------------------------------------------------------
-
 
 // Record workflow completion for current user ==================>
 export const recordWorkflowCompletion = async (workflowId: string) => {
-
-
   console.log("Recording completion for workflow:", workflowId);
   try {
     const user = await getAuthUser();
@@ -1165,13 +1162,16 @@ export const getUserCompletionRank = async () => {
   }
 };
 
-
 export const getRecentCompletionLeaderboards = async () => {
   try {
     const now = new Date();
-    
+
     // Calculate date boundaries
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
     const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -1234,11 +1234,11 @@ export const getRecentCompletionLeaderboards = async () => {
 
     // Get user details for all completion data
     const allUserIds = [
-      ...todayCompletions.map(c => c.userId),
-      ...weekCompletions.map(c => c.userId),
-      ...monthCompletions.map(c => c.userId),
+      ...todayCompletions.map((c) => c.userId),
+      ...weekCompletions.map((c) => c.userId),
+      ...monthCompletions.map((c) => c.userId),
     ];
-    
+
     const uniqueUserIds = [...new Set(allUserIds)];
 
     const users = await db.profile.findMany({
@@ -1258,14 +1258,16 @@ export const getRecentCompletionLeaderboards = async () => {
 
     // Helper function to combine completion data with user info
     const combineWithUserData = (completions: any[]) => {
-      return completions.map((completion) => {
-        const user = users.find((u) => u.clerkId === completion.userId);
-        return {
-          userId: completion.userId,
-          completionCount: completion._count.userId,
-          user: user || null,
-        };
-      }).filter(item => item.user !== null); // Only include items with valid user data
+      return completions
+        .map((completion) => {
+          const user = users.find((u) => u.clerkId === completion.userId);
+          return {
+            userId: completion.userId,
+            completionCount: completion._count.userId,
+            user: user || null,
+          };
+        })
+        .filter((item) => item.user !== null); // Only include items with valid user data
     };
 
     return {
@@ -1288,10 +1290,10 @@ export const getCompletionStreaks = async () => {
   try {
     const user = await getAuthUser();
     const now = new Date();
-    
+
     // Get user's recent completions (last 30 days)
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    
+
     const recentCompletions = await db.workflowCompletion.findMany({
       where: {
         userId: user.id,
@@ -1315,17 +1317,17 @@ export const getCompletionStreaks = async () => {
 
     // Group completions by date
     const completionsByDate = new Map<string, number>();
-    recentCompletions.forEach(completion => {
-      const dateKey = completion.completedAt.toISOString().split('T')[0];
+    recentCompletions.forEach((completion) => {
+      const dateKey = completion.completedAt.toISOString().split("T")[0];
       completionsByDate.set(dateKey, (completionsByDate.get(dateKey) || 0) + 1);
     });
 
     // Sort dates and calculate streaks
     const sortedDates = Array.from(completionsByDate.keys()).sort().reverse();
-    
+
     for (let i = 0; i < sortedDates.length; i++) {
       const currentDate = new Date(sortedDates[i]);
-      
+
       if (lastDate === null) {
         // First date
         tempStreak = 1;
@@ -1333,8 +1335,10 @@ export const getCompletionStreaks = async () => {
           currentStreak = 1;
         }
       } else {
-        const daysDiff = Math.floor((lastDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
-        
+        const daysDiff = Math.floor(
+          (lastDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
         if (daysDiff === 1) {
           // Consecutive day
           tempStreak++;
@@ -1350,14 +1354,18 @@ export const getCompletionStreaks = async () => {
           }
         }
       }
-      
+
       lastDate = currentDate;
     }
-    
+
     longestStreak = Math.max(longestStreak, tempStreak);
 
     // Get today's completions count
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
     const todayCompletions = await db.workflowCompletion.count({
       where: {
         userId: user.id,
@@ -1400,42 +1408,49 @@ function isYesterday(date: Date): boolean {
 export const getGlobalCompletionStats = async () => {
   try {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
     const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
     // Get completion counts
     const [
       totalCompletions,
-      todayCompletions, 
+      todayCompletions,
       weekCompletions,
       monthCompletions,
       totalActiveStudents,
-      totalWorkflows
+      totalWorkflows,
     ] = await Promise.all([
       db.workflowCompletion.count(),
       db.workflowCompletion.count({
-        where: { completedAt: { gte: todayStart } }
+        where: { completedAt: { gte: todayStart } },
       }),
       db.workflowCompletion.count({
-        where: { completedAt: { gte: weekStart } }
+        where: { completedAt: { gte: weekStart } },
       }),
       db.workflowCompletion.count({
-        where: { completedAt: { gte: monthStart } }
+        where: { completedAt: { gte: monthStart } },
       }),
-      db.workflowCompletion.groupBy({
-        by: ['userId'],
-        _count: {
-          userId: true,
-        },
-      }).then(result => result.length),
-      db.workflow.count()
+      db.workflowCompletion
+        .groupBy({
+          by: ["userId"],
+          _count: {
+            userId: true,
+          },
+        })
+        .then((result) => result.length),
+      db.workflow.count(),
     ]);
 
     // Calculate average completions per workflow
-    const avgCompletionsPerWorkflow = totalWorkflows > 0 
-      ? Math.round((totalCompletions / totalWorkflows) * 100) / 100 
-      : 0;
+    const avgCompletionsPerWorkflow =
+      totalWorkflows > 0
+        ? Math.round((totalCompletions / totalWorkflows) * 100) / 100
+        : 0;
 
     return {
       totalCompletions,
