@@ -53,7 +53,7 @@ export default function WorkflowStepsViewer({
   // Handle step expansion tracking
   const handleStepToggleExpanded = (stepId: string, isExpanded: boolean) => {
     if (isExpanded) {
-      setViewedSteps(prev => new Set([...prev, stepId]));
+      setViewedSteps((prev) => new Set([...prev, stepId]));
     }
   };
 
@@ -66,13 +66,13 @@ export default function WorkflowStepsViewer({
       // Open the new step and close any previously opened step
       setExpandedStepId(stepId);
       // Mark as viewed when opened
-      setViewedSteps(prev => new Set([...prev, stepId]));
+      setViewedSteps((prev) => new Set([...prev, stepId]));
     }
   };
 
   // Handle marking all steps as completed
   const handleMarkAllCompleted = () => {
-    const allStepIds = displayedSteps.map(step => step.id);
+    const allStepIds = displayedSteps.map((step) => step.id);
     setViewedSteps(new Set(allStepIds));
     // Close any expanded step
     setExpandedStepId(null);
@@ -85,15 +85,20 @@ export default function WorkflowStepsViewer({
   console.log("WorkflowStepsViewer - orderedSteps:", orderedSteps);
 
   // Always show all steps - no more limiting
-  const displayedSteps = showDisconnected 
-    ? orderedSteps 
+  const displayedSteps = showDisconnected
+    ? orderedSteps
     : orderedSteps.filter((step) => !step.isDisconnected);
 
   const disconnectedSteps = orderedSteps.filter((step) => step.isDisconnected);
 
   // Check if all steps are completed
-  const allStepsCompleted = displayedSteps.length > 0 && displayedSteps.every(step => viewedSteps.has(step.id));
-  const completionPercentage = displayedSteps.length > 0 ? Math.round((viewedSteps.size / displayedSteps.length) * 100) : 0;
+  const allStepsCompleted =
+    displayedSteps.length > 0 &&
+    displayedSteps.every((step) => viewedSteps.has(step.id));
+  const completionPercentage =
+    displayedSteps.length > 0
+      ? Math.round((viewedSteps.size / displayedSteps.length) * 100)
+      : 0;
 
   if (!orderedSteps || orderedSteps.length === 0) {
     return (
@@ -139,14 +144,17 @@ export default function WorkflowStepsViewer({
             <Badge variant="outline" className="text-xs">
               {displayedSteps.length} steps
             </Badge>
-            
+
             {/* Progress indicator for viewed steps */}
             {viewedSteps.size > 0 && (
-              <Badge className={cn("text-xs text-white", 
-                allStepsCompleted 
-                  ? "bg-green-500 hover:bg-green-600" 
-                  : "bg-blue-500 hover:bg-blue-600"
-              )}>
+              <Badge
+                className={cn(
+                  "text-xs text-white",
+                  allStepsCompleted
+                    ? "bg-green-500 hover:bg-green-600"
+                    : "bg-blue-500 hover:bg-blue-600"
+                )}
+              >
                 {allStepsCompleted && <Trophy className="h-3 w-3 mr-1" />}
                 {viewedSteps.size}/{displayedSteps.length} viewed
               </Badge>
@@ -203,39 +211,41 @@ export default function WorkflowStepsViewer({
                     <div
                       className={cn(
                         "flex items-center justify-center h-10 w-10 rounded-full font-bold text-sm z-10 shadow-md transition-all duration-300",
-                        isViewed ? (
-                          step.isTrigger
+                        isViewed
+                          ? step.isTrigger
                             ? "bg-amber-600 text-white ring-2 ring-amber-300"
                             : step.isDisconnected
                             ? "bg-destructive text-white ring-2 ring-destructive/30"
                             : "bg-primary text-primary-foreground ring-2 ring-primary/30"
-                        ) : (
-                          step.isTrigger
-                            ? "bg-amber-500 text-white"
-                            : step.isDisconnected
-                            ? "bg-destructive text-white"
-                            : "bg-primary text-primary-foreground"
-                        )
+                          : step.isTrigger
+                          ? "bg-amber-500 text-white"
+                          : step.isDisconnected
+                          ? "bg-destructive text-white"
+                          : "bg-primary text-primary-foreground"
                       )}
                     >
-                      {isViewed ? <Check className="h-5 w-5" /> : step.stepNumber}
+                      {isViewed ? (
+                        <Check className="h-5 w-5" />
+                      ) : (
+                        step.stepNumber
+                      )}
                     </div>
 
                     {/* Connection Line */}
                     {!isLastStep && (
-                      <div 
+                      <div
                         className={cn(
                           "w-px h-8 mt-2 transition-colors duration-300",
                           isViewed ? "bg-primary" : "bg-border"
-                        )} 
+                        )}
                       />
                     )}
                   </div>
 
                   {/* Step Content - Unified Card */}
                   <div className="flex-1 min-w-0">
-                    <UnifiedStepCard 
-                      step={step} 
+                    <UnifiedStepCard
+                      step={step}
                       stepNumber={step.stepNumber}
                       onToggleExpanded={handleStepToggleExpanded}
                       isMarkedAsViewed={viewedSteps.has(step.id)}
@@ -252,7 +262,7 @@ export default function WorkflowStepsViewer({
         {/* Mark All Completed Section */}
         {displayedSteps.length > 0 && (
           <div className="p-4 border-t bg-gradient-to-r from-muted/30 to-transparent">
-            {!allStepsCompleted ? (
+            {/* {!allStepsCompleted ? (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
@@ -298,15 +308,15 @@ export default function WorkflowStepsViewer({
                   </div>
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Progress bar */}
             <div className="mt-3 w-full bg-muted/30 rounded-full h-2 overflow-hidden">
-              <div 
+              <div
                 className={cn(
                   "h-full rounded-full transition-all duration-700 ease-in-out",
-                  allStepsCompleted 
-                    ? "bg-gradient-to-r from-green-500 to-green-400" 
+                  allStepsCompleted
+                    ? "bg-gradient-to-r from-green-500 to-green-400"
                     : "bg-gradient-to-r from-primary to-primary/70"
                 )}
                 style={{ width: `${completionPercentage}%` }}
@@ -315,7 +325,9 @@ export default function WorkflowStepsViewer({
           </div>
         )}
 
-        <MarkCompletedButton  workflowId={workflowId}/>
+        <div className="flex items-center justify-center p-4 border-t bg-gradient-to-r from-muted/30 to-transparent">
+          <MarkCompletedButton workflowId={workflowId} />
+        </div>
 
         {/* Disconnected Steps Warning */}
         {disconnectedSteps.length > 0 && !showDisconnected && (
