@@ -26,6 +26,24 @@ const getAuthUser = async () => {
   return user;
 };
 
+const isAdminUser = async (): Promise<boolean> => {
+  try {
+    const user = await currentUser();
+    const adminUserId = process.env.ADMIN_USER_ID;
+
+    // Check if user exists and admin ID is configured
+    if (!user || !adminUserId) {
+      return false;
+    }
+
+    // Check if current user is admin
+    return user.id === adminUserId;
+  } catch (error) {
+    console.error("Error checking admin status:", error);
+    return false;
+  }
+};
+
 const renderError = (error: unknown): { message: string; success: boolean } => {
   console.log(error);
   return {
@@ -1667,5 +1685,345 @@ export const updateIssuePriority = async (
   } catch (error) {
     console.error("Error updating issue priority:", error);
     return { message: "Failed to update issue priority", success: false };
+  }
+};
+
+//  Admin actions ====================================================================== >>>>
+
+// Add these functions to your utils/actions.ts file
+// Add this single function to your utils/actions.ts file
+
+// Updated fetchAdminDashboardStats with single admin check
+export const fetchAdminDashboardStats = async () => {
+  try {
+    // Check if user is admin - throw error if not
+    const isAdmin = await isAdminUser();
+    if (!isAdmin) {
+      throw new Error("Access denied. Admin privileges required.");
+    }
+
+    // Get current date boundaries
+    const now = new Date();
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+    const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Fetch all main counts in parallel
+    const [
+      totalUsers,
+      totalWorkflows,
+      totalDownloads,
+      totalIssues,
+      totalViews,
+      totalCompletions,
+      newUsersToday,
+      newWorkflowsToday,
+      newDownloadsToday,
+      newIssuesToday,
+      newCompletionsToday,
+    ] = await Promise.all([
+      // Main totals
+      db.profile.count(),
+      db.workflow.count(),
+      db.workflowDownload.count(),
+      db.issue.count(),
+      db.workflow
+        .aggregate({
+          _sum: { viewCount: true },
+        })
+        .then((result) => result._sum.viewCount || 0),
+      db.workflowCompletion.count(),
+
+      // Today's new records
+      db.profile.count({
+        where: { createdAt: { gte: todayStart } },
+      }),
+      db.workflow.count({
+        where: { createdAt: { gte: todayStart } },
+      }),
+      db.workflowDownload.count({
+        where: { downloadedAt: { gte: todayStart } },
+      }),
+      db.issue.count({
+        where: { createdAt: { gte: todayStart } },
+      }),
+      db.workflowCompletion.count({
+        where: { completedAt: { gte: todayStart } },
+      }),
+    ]);
+
+    // Get issues by status
+    const issuesByStatus = await db.issue.groupBy({
+      by: ["status"],
+      _count: {
+        status: true,
+      },
+    });
+
+    const issueStatusCounts = {
+      open:
+        issuesByStatus.find((item) => item.status === "OPEN")?._count.status ||
+        0,
+      inProgress:
+        issuesByStatus.find((item) => item.status === "IN_PROGRESS")?._count
+          .status || 0,
+      resolved:
+        issuesByStatus.find((item) => item.status === "RESOLVED")?._count
+          .status || 0,
+      closed:
+        issuesByStatus.find((item) => item.status === "CLOSED")?._count
+          .status || 0,
+    };
+
+    // Get top workflows by downloads
+    const topWorkflows = await db.workflow.findMany({
+      take: 5,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        viewCount: true,
+        author: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+        _count: {
+          select: {
+            downloads: true,
+          },
+        },
+      },
+      orderBy: {
+        downloads: {
+          _count: "desc",
+        },
+      },
+    });
+
+    // Get top users by workflow count
+    const topUsers = await db.profile.findMany({
+      take: 5,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        username: true,
+        profileImage: true,
+        _count: {
+          select: {
+            Workflow: true,
+          },
+        },
+      },
+      orderBy: {
+        Workflow: {
+          _count: "desc",
+        },
+      },
+    });
+
+    // Calculate total downloads for each top user
+    const topUsersWithDownloads = await Promise.all(
+      topUsers.map(async (user) => {
+        const totalDownloads = await db.workflowDownload.count({
+          where: {
+            workflow: {
+              authorId: user.id,
+            },
+          },
+        });
+        return {
+          ...user,
+          totalDownloads,
+        };
+      })
+    );
+
+    // Get recent activity (last 10 activities)
+    const [
+      recentUsers,
+      recentWorkflows,
+      recentDownloads,
+      recentIssues,
+      recentCompletions,
+    ] = await Promise.all([
+      db.profile.findMany({
+        take: 2,
+        select: {
+          firstName: true,
+          lastName: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      db.workflow.findMany({
+        take: 2,
+        select: {
+          title: true,
+          createdAt: true,
+          author: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      db.workflowDownload.findMany({
+        take: 2,
+        select: {
+          downloadedAt: true,
+          workflow: {
+            select: {
+              title: true,
+            },
+          },
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: { downloadedAt: "desc" },
+      }),
+      db.issue.findMany({
+        take: 2,
+        select: {
+          name: true,
+          content: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      db.workflowCompletion.findMany({
+        take: 2,
+        select: {
+          completedAt: true,
+          workflow: {
+            select: {
+              title: true,
+            },
+          },
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: { completedAt: "desc" },
+      }),
+    ]);
+
+    // Combine and format recent activity
+    const recentActivity = [
+      ...recentUsers.map((user) => ({
+        type: "user" as const,
+        message: `New user ${user.firstName} ${user.lastName} joined the platform`,
+        timestamp: user.createdAt,
+        user: `${user.firstName} ${user.lastName}`,
+      })),
+      ...recentWorkflows.map((workflow) => ({
+        type: "workflow" as const,
+        message: `New workflow "${workflow.title}" created by ${workflow.author.firstName} ${workflow.author.lastName}`,
+        timestamp: workflow.createdAt,
+        user: `${workflow.author.firstName} ${workflow.author.lastName}`,
+      })),
+      ...recentDownloads.map((download) => ({
+        type: "download" as const,
+        message: `${download.user.firstName} ${download.user.lastName} downloaded "${download.workflow.title}"`,
+        timestamp: download.downloadedAt,
+        user: `${download.user.firstName} ${download.user.lastName}`,
+      })),
+      ...recentIssues.map((issue) => ({
+        type: "issue" as const,
+        message: `New issue reported: "${issue.content.substring(0, 50)}..."`,
+        timestamp: issue.createdAt,
+        user: issue.name,
+      })),
+      ...recentCompletions.map((completion) => ({
+        type: "completion" as const,
+        message: `${completion.user.firstName} ${completion.user.lastName} completed "${completion.workflow.title}"`,
+        timestamp: completion.completedAt,
+        user: `${completion.user.firstName} ${completion.user.lastName}`,
+      })),
+    ]
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      )
+      .slice(0, 10);
+
+    return {
+      totalUsers,
+      totalWorkflows,
+      totalDownloads,
+      totalIssues,
+      totalViews,
+      totalCompletions,
+      todayStats: {
+        newUsers: newUsersToday,
+        newWorkflows: newWorkflowsToday,
+        newDownloads: newDownloadsToday,
+        newIssues: newIssuesToday,
+        newCompletions: newCompletionsToday,
+      },
+      issuesByStatus: issueStatusCounts,
+      recentActivity,
+      topWorkflows: topWorkflows.map((workflow) => ({
+        id: workflow.slug,
+        title: workflow.title,
+        author: `${workflow.author.firstName} ${workflow.author.lastName}`,
+        downloads: workflow._count.downloads,
+        views: workflow.viewCount,
+      })),
+      topUsers: topUsersWithDownloads.map((user) => ({
+        id: user.id,
+        name: `${user.firstName} ${user.lastName}`,
+        workflowCount: user._count.Workflow,
+        totalDownloads: user.totalDownloads,
+      })),
+    };
+  } catch (error) {
+    console.error("Error fetching admin dashboard stats:", error);
+
+    // If it's an admin access error, re-throw it
+    if (error instanceof Error && error.message.includes("Access denied")) {
+      throw error;
+    }
+
+    // For other errors, return default values
+    return {
+      totalUsers: 0,
+      totalWorkflows: 0,
+      totalDownloads: 0,
+      totalIssues: 0,
+      totalViews: 0,
+      totalCompletions: 0,
+      todayStats: {
+        newUsers: 0,
+        newWorkflows: 0,
+        newDownloads: 0,
+        newIssues: 0,
+        newCompletions: 0,
+      },
+      issuesByStatus: {
+        open: 0,
+        inProgress: 0,
+        resolved: 0,
+        closed: 0,
+      },
+      recentActivity: [],
+      topWorkflows: [],
+      topUsers: [],
+    };
   }
 };

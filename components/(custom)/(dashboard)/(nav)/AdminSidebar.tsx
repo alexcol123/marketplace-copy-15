@@ -7,14 +7,14 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PanelRight, ArrowLeft } from "lucide-react";
 
-import {  navigation } from "../../../../utils/constants";
+import { adminNavigation, navigation } from "../../../../utils/constants";
 
 import SignOutBtn from "./SignOutBtn";
+import { Separator } from "@/components/ui/separator";
 
 
 
-
-export function Sidebar({ className }: { className?: string }) {
+export function AdminSidebar({ className }: { className?: string }) {
 
 
 
@@ -139,7 +139,58 @@ export function Sidebar({ className }: { className?: string }) {
               </li>
             );
           })}
-  
+          {/* Test==================================================== */}
+
+          <Separator className="my-4" />
+
+          <h2>Admin</h2>
+          {adminNavigation.map((item) => {
+            const isActive = pathname === item.href;
+            const isBackBtn = item.href === "/";
+
+            return (
+              <li key={item.name} className={isBackBtn ? "mb-6" : ""}>
+                <Link
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-md py-2 text-sm transition-colors",
+                    isBackBtn
+                      ? "bg-gradient-to-r from-primary/10 to-transparent border-l-4 border-primary shadow-sm hover:from-primary/20 hover:to-primary/5 group"
+                      : "hover:bg-secondary hover:text-secondary-foreground",
+                    isActive && !isBackBtn
+                      ? "bg-primary text-primary-foreground font-medium"
+                      : isBackBtn
+                      ? "text-primary font-medium"
+                      : "text-muted-foreground",
+                    collapsed ? "justify-center px-2" : "px-3",
+                    isBackBtn &&
+                      collapsed &&
+                      "border-l-4 border-primary bg-primary/10 py-3"
+                  )}
+                >
+                  {isBackBtn ? (
+                    <ArrowLeft
+                      className={cn(
+                        "h-5 w-5 transition-transform",
+                        !collapsed && "group-hover:-translate-x-1",
+                        collapsed ? "mx-0" : "min-w-5"
+                      )}
+                    />
+                  ) : (
+                    <item.icon
+                      className={cn("h-5 w-5", collapsed ? "mx-0" : "min-w-5")}
+                    />
+                  )}
+                  {!collapsed && (
+                    <span className={isBackBtn ? "font-medium" : ""}>
+                      {item.name}
+                    </span>
+                  )}
+                  {collapsed && <span className="sr-only">{item.name}</span>}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </nav>
 

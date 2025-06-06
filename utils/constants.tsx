@@ -7,7 +7,7 @@ import {
   FaBullhorn,
   FaInfinity,
   FaUsers,
-  FaArrowCircleLeft,
+
 } from "react-icons/fa";
 import {
   IoShieldSharp,
@@ -21,8 +21,7 @@ import { GiMoneyStack } from "react-icons/gi";
 import type { IconType } from "react-icons"; // Import IconType for better typing
 import {
   ArrowBigLeft,
-  ArrowLeft,
-  CircleArrowLeft,
+
   CloudDownload,
   LayoutDashboard,
   List,
@@ -30,6 +29,7 @@ import {
   User,
   Trophy,
   AlertCircle,
+  AlarmClockCheckIcon,
 } from "lucide-react";
 import Dashboard from "@/app/dashboard/page";
 
@@ -60,12 +60,12 @@ export const navigation: NavItem[] = [
 export const adminNavigation: NavItem[] = [
   {
     name: "Admin Dashboard",
-    href: "/dashboard/admin/home",
-    icon: Dashboard,
+    href: "/admin/",
+    icon: AlarmClockCheckIcon,
   },
   {
     name: "Issues Management",
-    href: "/dashboard/admin/issues",
+    href: "/admin/issues",
     icon: AlertCircle,
   },
 ];
