@@ -19,17 +19,19 @@ import {
 import { BsGraphUp, BsThreeDots, BsLifePreserver } from "react-icons/bs";
 import { GiMoneyStack } from "react-icons/gi";
 import type { IconType } from "react-icons"; // Import IconType for better typing
-import { 
-  ArrowBigLeft, 
-  ArrowLeft, 
-  CircleArrowLeft, 
-  CloudDownload, 
-  LayoutDashboard, 
-  List, 
-  PlusCircle, 
+import {
+  ArrowBigLeft,
+  ArrowLeft,
+  CircleArrowLeft,
+  CloudDownload,
+  LayoutDashboard,
+  List,
+  PlusCircle,
   User,
-  Trophy
+  Trophy,
+  AlertCircle,
 } from "lucide-react";
+import Dashboard from "@/app/dashboard/page";
 
 export type NavItem = {
   name: string;
@@ -43,12 +45,29 @@ export const navigation: NavItem[] = [
   { name: "My Workflows", href: "/dashboard/wf", icon: List },
   { name: "My Profile", href: "/dashboard/profile", icon: User },
   { name: "My Downloads", href: "/dashboard/mydownloads", icon: CloudDownload },
-  { name: "My Tutorial Completions", href: "/dashboard/mycompletions", icon: Trophy },
+  {
+    name: "My Tutorial Completions",
+    href: "/dashboard/mycompletions",
+    icon: Trophy,
+  },
   {
     name: "Create Workflow",
     href: "/dashboard/wf/create",
     icon: PlusCircle,
-  }
+  },
+];
+
+export const adminNavigation: NavItem[] = [
+  {
+    name: "Admin Dashboard",
+    href: "/dashboard/admin/home",
+    icon: Dashboard,
+  },
+  {
+    name: "Issues Management",
+    href: "/dashboard/admin/issues",
+    icon: AlertCircle,
+  },
 ];
 
 interface CategoryType {
