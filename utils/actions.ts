@@ -15,7 +15,7 @@ import { revalidatePath } from "next/cache";
 import { uploadImage } from "./supabase";
 
 import slug from "slug";
-import { CategoryType } from "@prisma/client";
+import { CategoryType, IssueStatus, Priority } from "@prisma/client";
 import { getDateTime } from "./functions/getDateTime";
 
 const getAuthUser = async () => {
@@ -972,22 +972,6 @@ export const getUserCompletionStats = async () => {
     });
 
     // Get completions by category
-    const completionsByCategory = await db.workflowCompletion.groupBy({
-      by: ["workflowId"],
-      where: {
-        userId: user.id,
-      },
-      _count: {
-        workflowId: true,
-      },
-      include: {
-        workflow: {
-          select: {
-            category: true,
-          },
-        },
-      },
-    });
 
     // Get recent completions (last 7 days)
     const sevenDaysAgo = new Date();
@@ -1472,5 +1456,216 @@ export const getGlobalCompletionStats = async () => {
       totalWorkflows: 0,
       avgCompletionsPerWorkflow: 0,
     };
+  }
+};
+
+/// Issue reporting actions ====================================================================== >>>>
+
+// Create a new issue report
+export const createIssue = async (
+  prevState: Record<string, unknown>,
+  formData: FormData
+): Promise<{ message: string; success: boolean }> => {
+  console.log("action called to report issue");
+  try {
+    // Get current user (optional - could be null for guests)
+    const user = await currentUser();
+
+    // Get form data
+    const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
+    const phone = formData.get("phone") as string;
+    const workflowUrl = formData.get("workflowUrl") as string;
+    const content = formData.get("content") as string;
+
+    // Basic validation
+    if (!name || !content) {
+      return {
+        message: "Name and issue description are required",
+        success: false,
+      };
+    }
+
+    if (!email && !phone) {
+      return {
+        message: "Please provide either email or phone for response",
+        success: false,
+      };
+    }
+
+    // Create issue
+    await db.issue.create({
+      data: {
+        name: name.trim(),
+        email: email?.trim() || null,
+        phone: phone?.trim() || null,
+        workflowUrl: workflowUrl?.trim() || null,
+        content: content.trim(),
+        userId: user?.id || null, // Link to user if logged in
+        status: "OPEN",
+        priority: "MEDIUM", // ← Add this
+      },
+    });
+
+    return {
+      message: "Issue reported successfully! We'll get back to you soon.",
+      success: true,
+    };
+  } catch (error) {
+    console.error("Error creating issue:", error);
+    return {
+      message: "Failed to submit issue. Please try again.",
+      success: false,
+    };
+  }
+};
+
+// Get all issues (for admin dashboard)
+export const fetchAllIssues = async () => {
+  try {
+    const issues = await db.issue.findMany({
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            username: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return issues;
+  } catch (error) {
+    console.error("Error fetching issues:", error);
+    return [];
+  }
+};
+
+// Update issue status (admin only)
+export const updateIssueStatus = async (
+  issueId: string,
+  newStatus: IssueStatus
+): Promise<{ message: string; success: boolean }> => {
+  try {
+    await db.issue.update({
+      where: { id: issueId },
+      data: {
+        status: newStatus,
+        updatedAt: new Date(),
+      },
+    });
+
+    revalidatePath("/admin/issues"); // Adjust path as needed
+
+    return { message: `Issue status updated to ${newStatus}`, success: true };
+  } catch (error) {
+    console.error("Error updating issue status:", error);
+    return { message: "Failed to update issue status", success: false };
+  }
+};
+
+// Get issues by status (for admin filtering)
+export const fetchIssuesByStatus = async (status?: IssueStatus) => {
+  try {
+    const issues = await db.issue.findMany({
+      where: status ? { status: status as IssueStatus } : undefined,
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            username: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return issues;
+  } catch (error) {
+    console.error("Error fetching issues by status:", error);
+    return [];
+  }
+};
+
+// Get single issue details
+export const fetchIssueById = async (issueId: string) => {
+  try {
+    const issue = await db.issue.findUnique({
+      where: { id: issueId },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            username: true,
+            profileImage: true,
+          },
+        },
+      },
+    });
+
+    return issue;
+  } catch (error) {
+    console.error("Error fetching issue:", error);
+    return null;
+  }
+};
+
+// Delete issue (admin only)
+export const deleteIssue = async (
+  issueId: string
+): Promise<{ message: string; success: boolean }> => {
+  try {
+    await db.issue.delete({
+      where: { id: issueId },
+    });
+
+    revalidatePath("/admin/issues");
+
+    return { message: "Issue deleted successfully", success: true };
+  } catch (error) {
+    console.error("Error deleting issue:", error);
+    return { message: "Failed to delete issue", success: false };
+  }
+};
+
+export const updateIssuePriority = async (
+  issueId: string,
+  newPriority: Priority
+): Promise<{ message: string; success: boolean }> => {
+  console.log("==========================================================");
+  console.log(" Updating issue priority");
+  console.log(`Issue ID: ${issueId}`);
+  console.log(`New Priority: ${newPriority}`);
+  console.log(`type:${typeof newPriority}`);
+  console.log(`Updating issue ${issueId} priority to ${newPriority}`);
+  try {
+    await db.issue.update({
+      where: { id: issueId },
+      data: {
+        priority: newPriority,
+        updatedAt: new Date(),
+      },
+    });
+
+    revalidatePath("/dashboard/admin/issues"); // Adjust path as needed
+
+    return {
+      message: `Issue priority updated }`,
+      success: true,
+    };
+  } catch (error) {
+    console.error("Error updating issue priority:", error);
+    return { message: "Failed to update issue priority", success: false };
   }
 };
